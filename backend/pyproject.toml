@@ -1,0 +1,24 @@
+[project]
+name = "matematikuppfoljning-backend"
+version = "0.1.0"
+description = "Continuous mathematics progress monitoring FK->Ak9 (synthetic demo)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "sqlmodel>=0.0.16",
+    "pydantic>=2.6",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+ml = [
+    "scikit-learn>=1.4",
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
