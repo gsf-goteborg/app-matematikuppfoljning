@@ -19,6 +19,7 @@ from app.db import engine, init_db
 from app.models import (
     Ak9Outcome,
     Assessment,
+    DemoMeta,
     Huvudman,
     Klass,
     RiskScore,
@@ -43,7 +44,7 @@ def _seed_progression(session: Session) -> None:
 
 def _clear(session: Session) -> None:
     for model in (RiskScore, Ak9Outcome, Assessment, Student, TeacherKlass,
-                  Teacher, Klass, School, Huvudman, SkillEdge, SkillNode):
+                  Teacher, Klass, School, Huvudman, SkillEdge, SkillNode, DemoMeta):
         session.exec(delete(model))
 
 
@@ -81,6 +82,10 @@ def run_seed(students: int, seed: int) -> dict[str, str]:
             for rs in risk_engine.compute_trajectory(sid, rows):
                 session.add(rs)
                 n_scores += 1
+        session.commit()
+
+        for k, v in result.scenarios.items():
+            session.add(DemoMeta(key=k, value=v))
         session.commit()
 
         print(f"Seeded: {len(result.schools)} skolor, {len(result.students)} elever, "

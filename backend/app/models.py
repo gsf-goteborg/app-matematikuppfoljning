@@ -104,3 +104,9 @@ class Ak9Outcome(SQLModel, table=True):
     student_id: str = Field(foreign_key="student.id", primary_key=True)
     provbetyg: str  # F..A
     slutbetyg: str  # F..A
+
+
+class DemoMeta(SQLModel, table=True):
+    """Small key/value store for demo plumbing (e.g. scenario student ids)."""
+    key: str = Field(primary_key=True)
+    value: str

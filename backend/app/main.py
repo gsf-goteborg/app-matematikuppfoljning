@@ -29,6 +29,19 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/api/demo/scenarios")
+def demo_scenarios() -> dict:
+    """Scenario student ids (e.g. the silent pupil) for quick links in the demo."""
+    from sqlmodel import Session, select
+
+    from .db import engine
+    from .models import DemoMeta
+
+    with Session(engine) as session:
+        rows = session.exec(select(DemoMeta)).all()
+    return {r.key: r.value for r in rows}
+
+
 @app.post("/api/seed")
 def seed(students: int = 2000, seed: int = 42) -> dict:
     """Regenerate synthetic data (demo control)."""

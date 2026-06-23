@@ -28,3 +28,8 @@ dist/
 
 # generated at seed time
 backend/seed_scenarios.json
+
+# TS build artifacts
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
