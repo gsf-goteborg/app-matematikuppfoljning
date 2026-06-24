@@ -1,9 +1,16 @@
 .PHONY: install install-backend install-frontend seed dev dev-backend dev-frontend demo clean
 
-PYTHON ?= python3
 VENV := backend/.venv
-PIP := $(VENV)/bin/pip
-PY := $(VENV)/bin/python
+# Windows puts venv executables in Scripts/, Unix in bin/.
+ifeq ($(OS),Windows_NT)
+	PYTHON ?= python
+	VENV_BIN := $(VENV)/Scripts
+else
+	PYTHON ?= python3
+	VENV_BIN := $(VENV)/bin
+endif
+PIP := $(VENV_BIN)/pip
+PY := $(VENV_BIN)/python
 STUDENTS ?= 2000
 SEED ?= 42
 
@@ -17,10 +24,10 @@ install-frontend:
 	cd frontend && npm install
 
 seed: ## Generate synthetic data (override with STUDENTS=.. SEED=..)
-	cd backend && ../$(VENV)/bin/python seed.py --students $(STUDENTS) --seed $(SEED)
+	cd backend && ../$(VENV_BIN)/python seed.py --students $(STUDENTS) --seed $(SEED)
 
 dev-backend:
-	cd backend && ../$(VENV)/bin/uvicorn app.main:app --reload --port 8000
+	cd backend && ../$(VENV_BIN)/uvicorn app.main:app --reload --port 8000
 
 dev-frontend:
 	cd frontend && npm run dev
@@ -28,7 +35,7 @@ dev-frontend:
 dev: ## Start backend (uvicorn) and frontend (Vite) in parallel
 	@echo "Startar backend (8000) och frontend (5173)…"
 	@trap 'kill 0' INT TERM; \
-	( cd backend && ../$(VENV)/bin/uvicorn app.main:app --reload --port 8000 ) & \
+	( cd backend && ../$(VENV_BIN)/uvicorn app.main:app --reload --port 8000 ) & \
 	( cd frontend && npm run dev ) & \
 	wait
 

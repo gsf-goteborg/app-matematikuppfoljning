@@ -2,31 +2,47 @@ import { Link } from "react-router-dom";
 import type { Alert } from "../api/client";
 
 const STYLE: Record<Alert["severity"], string> = {
-  critical: "border-l-4 border-red-500 bg-red-50 text-red-900",
-  warning: "border-l-4 border-orange-400 bg-orange-50 text-orange-900",
-  info: "border-l-4 border-slate-300 bg-slate-50 text-slate-700",
+  critical: "border-gbg-red bg-gbg-red-light/25 text-ink",
+  warning: "border-gbg-orange bg-gbg-orange-light/20 text-ink",
+  info: "border-gbg-blue-light bg-gbg-blue-light/15 text-ink",
 };
 
-const ICON: Record<Alert["severity"], string> = {
-  critical: "🔴",
-  warning: "🟠",
-  info: "ℹ️",
+const DOT: Record<Alert["severity"], string> = {
+  critical: "bg-gbg-red",
+  warning: "bg-gbg-orange",
+  info: "bg-gbg-blue",
+};
+
+const TAG: Record<Alert["severity"], string> = {
+  critical: "Kritiskt",
+  warning: "Varning",
+  info: "Info",
 };
 
 export default function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {alerts.map((a, i) => (
-        <div key={i} className={`rounded p-3 text-sm flex gap-2 ${STYLE[a.severity]}`}>
-          <span>{ICON[a.severity]}</span>
-          <span className="flex-1">
+        <div
+          key={i}
+          className={`rounded-r-lg border-l-4 p-3.5 text-sm flex gap-3 items-start animate-sweep-in ${STYLE[a.severity]}`}
+          style={{ animationDelay: `${i * 60}ms` }}
+        >
+          <span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${DOT[a.severity]}`} />
+          <div className="flex-1">
+            <span className="text-2xs uppercase tracking-wider font-semibold text-ink-soft mr-2">
+              {TAG[a.severity]}
+            </span>
             {a.text}
             {a.school_id !== null && (
-              <Link to={`/skola/${a.school_id}`} className="ml-2 underline whitespace-nowrap">
+              <Link
+                to={`/skola/${a.school_id}`}
+                className="ml-2 font-medium text-gbg-blue hover:text-gbg-blue-dark underline decoration-from-font underline-offset-2 whitespace-nowrap"
+              >
                 → öppna skola
               </Link>
             )}
-          </span>
+          </div>
         </div>
       ))}
     </div>

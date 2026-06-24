@@ -1,8 +1,33 @@
 @import "@xyflow/react/dist/style.css";
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* -------------------------------------------------------------------------
+   Göteborgs Stad – semantiska temafärger (mappade till grafiska profilen).
+   Endast svart/vit text på färgade ytor. Inga gradienter (varumärkesregel).
+------------------------------------------------------------------------- */
+:root {
+  --gbg-blue: #005293;
+  --gbg-blue-dark: #00395f;
+  --gbg-blue-light: #82bbdb;
+  --gbg-green: #6a9a1f;
+  --gbg-purple: #7f3f98;
+  --gbg-orange: #f47815;
+  --gbg-red: #e8364a;
+  --gbg-yellow: #fbc46d;
+
+  --color-primary: var(--gbg-blue);
+  --color-primary-dark: var(--gbg-blue-dark);
+  --color-accent: var(--gbg-purple);
+  --color-surface: #fffefb;
+  --color-paper: #f6f4ee;
+  --color-line: #e4e0d4;
+  --color-text: #1c2733;
+  --color-text-soft: #5a6573;
+}
 
 html,
 body,
@@ -11,6 +36,96 @@ body,
 }
 
 body {
-  @apply bg-slate-50 text-slate-800;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  @apply bg-paper text-ink;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01", "cv01";
+  /* Flat brand-blue plate behind the header, then warm paper — no gradient. */
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(0, 57, 95, 0.06) 1px, transparent 0);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+}
+
+/* Editorial serif headlines. */
+h1,
+h2,
+.font-display {
+  font-family: "Fraunces", Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Numerals line up in tables and KPI blocks. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+::selection {
+  background: var(--gbg-blue);
+  color: #fff;
+}
+
+/* -------------------------------------------------------------------------
+   Tillgänglighet (WCAG): tydlig tangentbordsfokus + respektera reduced motion.
+------------------------------------------------------------------------- */
+/* Orange ring syns mot både ljusa ytor och den blå huvudraden. */
+:where(a, button, select, input, [tabindex]):focus-visible {
+  outline: 3px solid var(--gbg-orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-link: dold tills den fokuseras med Tab. */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -120%);
+  z-index: 60;
+  background: var(--gbg-blue-dark);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-size: 0.875rem;
+  transition: transform 0.15s ease;
+}
+.skip-link:focus {
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Quiet, brand-tinted scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c7cdd5 transparent;
+}
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd2da;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #aeb7c2;
+  background-clip: content-box;
+}
+
+/* React Flow surface tuned to the paper theme. */
+.react-flow__controls button {
+  border-radius: 6px;
 }

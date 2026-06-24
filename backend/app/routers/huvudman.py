@@ -6,12 +6,13 @@ from sqlmodel import Session, select
 
 from .. import progression as prog
 from ..db import get_session
-from ..models import Ak9Outcome, Huvudman, Klass, School, Student
+from ..models import Ak9Outcome, Huvudman, Klass, RiskScore, School, Student
 from ..schemas import (
     Alert,
     EquityPoint,
     GateThroughput,
     HuvudmanOverview,
+    KommunKpi,
     SchoolGateSummary,
 )
 from . import _helpers as H
@@ -84,7 +85,7 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
             ))
     if not alerts:
         alerts.append(Alert(severity="info", school_id=None,
-                            text="Inga systemvarningar – grindarna håller över skolorna."))
+                            text="Inga systemvarningar – trösklarna håller över skolorna."))
 
     # ---- equity (analysis only -- never a risk predictor) ----
     def f_rate_for(filter_fn) -> dict[str, tuple[int, int]]:
@@ -122,8 +123,33 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
 
     school_summaries.sort(key=lambda s: s.gate_shares.get("N12", 1.0))
 
+    # ---- kommun-wide KPI summary (latest risk per student) ----
+    risk_rows = session.exec(select(RiskScore)).all()
+    latest_risk: dict[str, RiskScore] = {}
+    for rs in risk_rows:
+        cur = latest_risk.get(rs.student_id)
+        if cur is None or rs.arskurs > cur.arskurs:
+            latest_risk[rs.student_id] = rs
+    n_students = len(students)
+    n_critical = sum(1 for rs in latest_risk.values() if rs.risk_level >= 3)
+    n_elevated = sum(1 for rs in latest_risk.values() if rs.risk_level >= 2)
+    total_f = sum(f for f, _ in f_by_school.values())
+    total_out = sum(n for _, n in f_by_school.values())
+    kpi = KommunKpi(
+        n_students=n_students,
+        n_schools=len(schools),
+        n_critical=n_critical,
+        n_elevated=n_elevated,
+        share_elevated=round(n_elevated / n_students, 3) if n_students else 0.0,
+        f_rate_ak9=round(total_f / total_out, 3) if total_out else 0.0,
+        schools_with_gate_gap=sum(
+            1 for s in school_summaries if s.gate_shares.get("N12", 1.0) < 0.65
+        ),
+    )
+
     return HuvudmanOverview(
         huvudman_namn=huvudman.namn if huvudman else "Demokommunen",
+        kpi=kpi,
         schools=school_summaries,
         gate_throughput=gate_throughput,
         alerts=alerts,

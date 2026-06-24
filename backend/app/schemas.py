@@ -175,8 +175,19 @@ class EquityPoint(BaseModel):
     n: int
 
 
+class KommunKpi(BaseModel):
+    n_students: int
+    n_schools: int
+    n_critical: int  # elever med aktuell risknivå 3
+    n_elevated: int  # elever med aktuell risknivå >= 2
+    share_elevated: float
+    f_rate_ak9: float  # viktad F-andel åk 9 över kommunen
+    schools_with_gate_gap: int  # skolor där en tröskel systematiskt missas
+
+
 class HuvudmanOverview(BaseModel):
     huvudman_namn: str
+    kpi: KommunKpi
     schools: list[SchoolGateSummary]
     gate_throughput: list[GateThroughput]
     alerts: list[Alert]

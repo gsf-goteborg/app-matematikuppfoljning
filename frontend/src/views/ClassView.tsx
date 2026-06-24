@@ -17,18 +17,19 @@ export default function ClassView() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">
+      <span className="text-2xs uppercase tracking-[0.2em] text-gbg-blue font-semibold">
+        Klassvy · Lärare
+      </span>
+      <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-1 mt-0.5">
         Klass {h.beteckning}{" "}
-        <span className="text-slate-400 font-normal">
+        <span className="text-ink-faint font-normal text-2xl">
           · {gradeLabel(h.arskurs)} · {h.school_namn}
         </span>
       </h1>
-      <p className="text-slate-500 mb-4">
-        Lärarvyn: läs av läget – inga formulär att fylla i.
-      </p>
+      <p className="text-ink-soft mb-5">Lärarvyn: läs av läget – inga formulär att fylla i.</p>
 
       {focus.data && (
-        <Section title="Grindstatus i klassen" subtitle="De tre kritiska grindarna.">
+        <Section title="Tröskelstatus i klassen" subtitle="De tre kritiska trösklarna.">
           <GateStatusCards gates={focus.data.gates} />
         </Section>
       )}
@@ -43,24 +44,27 @@ export default function ClassView() {
               Inga större gemensamma luckor just nu – klassen ligger bra till.
             </p>
           ) : (
-            <ul className="space-y-2">
-              {focus.data.focus_groups.map((g) => (
+            <ul className="space-y-2.5">
+              {focus.data.focus_groups.map((g, i) => (
                 <li
                   key={g.node_id}
-                  className={`rounded-lg border p-3 ${
-                    g.is_gate ? "border-red-300 bg-red-50" : "border-slate-200"
+                  className={`rounded-lg border-l-4 p-3.5 animate-sweep-in ${
+                    g.is_gate
+                      ? "border-gbg-red bg-gbg-red-light/20"
+                      : "border-paper-line bg-white"
                   }`}
+                  style={{ animationDelay: `${i * 60}ms` }}
                 >
-                  <div className="font-medium">
+                  <div className="font-medium text-ink">
                     {g.is_gate && "⛳ "}
                     {g.rationale}
                   </div>
-                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-1">
+                  <div className="text-xs mt-2 flex flex-wrap gap-1.5">
                     {g.student_ids.map((sid) => (
                       <Link
                         key={sid}
                         to={`/elev/${sid}`}
-                        className="px-1.5 py-0.5 bg-white border rounded hover:bg-slate-100"
+                        className="px-2 py-0.5 bg-white border border-paper-line rounded-md text-ink-soft hover:border-gbg-blue hover:text-gbg-blue transition-colors tnum"
                       >
                         {sid}
                       </Link>

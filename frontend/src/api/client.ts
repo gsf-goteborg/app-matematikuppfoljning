@@ -160,8 +160,18 @@ export interface EquityPoint {
   f_rate: number;
   n: number;
 }
+export interface KommunKpi {
+  n_students: number;
+  n_schools: number;
+  n_critical: number;
+  n_elevated: number;
+  share_elevated: number;
+  f_rate_ak9: number;
+  schools_with_gate_gap: number;
+}
 export interface HuvudmanOverview {
   huvudman_namn: string;
+  kpi: KommunKpi;
   schools: SchoolGateSummary[];
   gate_throughput: GateThroughput[];
   alerts: Alert[];

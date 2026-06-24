@@ -7,7 +7,7 @@
 
 Dagens uppföljning mäter resultatet i slutet (betyg i åk 9) – ett *lagging
 indicator* som kommer för sent. Den här appen vänder på logiken och gör den
-**spricka som uppstår flera år tidigare** (oftast vid proportionalitet i åk 6
+**kunskapslucka som uppstår flera år tidigare** (oftast vid proportionalitet i åk 6
 eller övergången till algebra i åk 7) synlig i realtid, kopplad till vad som ska
 undervisas härnäst.
 
@@ -31,6 +31,25 @@ make seed STUDENTS=1500 SEED=7  # annan storlek/seed
 
 Backend och frontend kan också köras var för sig: `make dev-backend`,
 `make dev-frontend`.
+
+### Utan `make` (t.ex. Windows utan make installerat)
+
+Samma steg manuellt. På Windows ligger venv-binärerna i `Scripts/` (på
+macOS/Linux i `bin/`):
+
+```powershell
+# Backend (PowerShell)
+cd backend
+python -m venv .venv
+.venv\Scripts\pip install -e .
+.venv\Scripts\python seed.py --students 2000 --seed 42
+.venv\Scripts\uvicorn app.main:app --reload --port 8000
+
+# Frontend (nytt terminalfönster)
+cd frontend
+npm install
+npm run dev
+```
 
 ## Arkitektur
 
@@ -56,11 +75,11 @@ Hela DB-access går via SQLModel – ingen SQLite-specifik SQL. Byt
 
 ## Vyer (drill-down Huvudman ▸ Skola ▸ Klass ▸ Elev)
 
-- **Huvudman** (`/`): skoljämförelse på grindar (N6/N12/N17), systemvarningar,
+- **Huvudman** (`/`): skoljämförelse på trösklar (N6/N12/N17), systemvarningar,
   likvärdighetspanel.
-- **Skola** (`/skola/:id`): kohorttrend, grindstatus per årskurs, klasser som
+- **Skola** (`/skola/:id`): kohorttrend, tröskelstatus per årskurs, klasser som
   driver risk.
-- **Klass** (`/klass/:id`): mastery-heatmap, grindstatus, "fokus denna vecka".
+- **Klass** (`/klass/:id`): mastery-heatmap, tröskelstatus, "fokus denna vecka".
   Läraren *läser* – inga formulär.
 - **Elev** (`/elev/:id`): progressionsgraf (DAG), risktrajektoria, nästa lucka +
   åtgärd.
@@ -77,7 +96,7 @@ direkt till dem; id:na hämtas också från `GET /api/demo/scenarios`.
 |---|---|---|
 | **Den tysta eleven** | `elev-00987` | Godkänd t.o.m. åk 5, tappar proportionalitet (N12) i åk 6, F i åk 9. Risk röd redan från åk 6. Perfekt för jämförelsevyn. |
 | **Återhämtaren** | `elev-01327` | Tidig lucka vid N12 som åtgärdas – risken faller från åk 7. Visar att systemet fångar förbättring, inte bara dömer. |
-| **Grindskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av intag). Driver huvudmannavyn. |
+| **Tröskelskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av intag). Driver huvudmannavyn. |
 
 > Kör du med en annan `SEED`/`STUDENTS` får eleverna andra id:n – kolla
 > `GET /api/demo/scenarios` eller utskriften från `make seed`.

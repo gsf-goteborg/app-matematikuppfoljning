@@ -20,57 +20,71 @@ export default function StudentView() {
 
   return (
     <div>
-      <Link to={`/klass/${s.klass_id}`} className="text-sm text-slate-500 hover:underline">
+      <Link
+        to={`/klass/${s.klass_id}`}
+        className="text-sm text-ink-soft hover:text-gbg-blue transition-colors"
+      >
         ← Klass {s.klass_beteckning}
       </Link>
-      <div className="flex items-center justify-between flex-wrap gap-2 mt-1 mb-4">
-        <h1 className="text-2xl font-bold">
+      <div className="flex items-center justify-between flex-wrap gap-3 mt-1 mb-5">
+        <h1 className="text-3xl font-semibold text-ink">
           {s.id}{" "}
-          <span className="text-slate-400 font-normal">
+          <span className="text-ink-faint font-normal text-2xl">
             · {gradeLabel(s.arskurs)} · {s.school_namn}
           </span>
         </h1>
         <Link
           to={`/elev/${s.id}/jamforelse`}
-          className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700"
+          className="px-4 py-2 bg-gbg-blue text-white rounded-md text-sm font-medium hover:bg-gbg-blue-dark transition-colors shadow-card"
         >
           Jämför: Dagens vs Modern uppföljning →
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
         <div
-          className="rounded-xl p-4 text-white"
+          className="rounded-lg p-5 text-white shadow-lift animate-rise-in"
           style={{ background: RISK_COLORS[s.current_risk_level] }}
         >
-          <div className="text-sm opacity-90">Aktuell risknivå</div>
-          <div className="text-4xl font-bold">{s.current_risk_level}/3</div>
-          <div className="text-sm">{RISK_LABELS[s.current_risk_level]}</div>
+          <div className="text-2xs uppercase tracking-wider opacity-90">Aktuell risknivå</div>
+          <div className="text-5xl font-display font-semibold tnum mt-1">
+            {s.current_risk_level}
+            <span className="text-2xl opacity-80">/3</span>
+          </div>
+          <div className="text-sm font-medium mt-0.5">{RISK_LABELS[s.current_risk_level]}</div>
         </div>
-        <div className="rounded-xl border p-4 bg-white">
-          <div className="text-sm text-slate-500">Nästa lucka</div>
+        <div
+          className="rounded-lg border border-paper-line p-5 bg-paper-card shadow-card animate-rise-in"
+          style={{ animationDelay: "70ms" }}
+        >
+          <div className="text-2xs uppercase tracking-wider text-ink-faint">Nästa lucka</div>
           {nextGap ? (
             <>
-              <div className="text-xl font-semibold">
+              <div className="text-xl font-display font-semibold text-ink mt-1">
                 {nextGap.node_id} {nextGap.label_sv}
               </div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-ink-soft mt-0.5 tnum">
                 Bemästrad till {Math.round((nextGap.mastery ?? 0) * 100)}%
               </div>
             </>
           ) : (
-            <div className="text-xl font-semibold text-green-700">Inga öppna luckor 🎉</div>
+            <div className="text-xl font-display font-semibold text-gbg-green-dark mt-1">
+              Inga öppna luckor 🎉
+            </div>
           )}
         </div>
-        <div className="rounded-xl border p-4 bg-white">
-          <div className="text-sm text-slate-500">Åk 9-betyg</div>
+        <div
+          className="rounded-lg border border-paper-line p-5 bg-paper-card shadow-card animate-rise-in"
+          style={{ animationDelay: "140ms" }}
+        >
+          <div className="text-2xs uppercase tracking-wider text-ink-faint">Åk 9-betyg</div>
           {s.provbetyg ? (
-            <div className="flex gap-4 mt-1">
+            <div className="flex gap-5 mt-2">
               <Betyg label="Prov" value={s.provbetyg} />
               <Betyg label="Slut" value={s.slutbetyg} />
             </div>
           ) : (
-            <div className="text-sm text-slate-400 mt-2">Ännu ej i åk 9</div>
+            <div className="text-sm text-ink-faint mt-2">Ännu ej i åk 9</div>
           )}
         </div>
       </div>
@@ -107,10 +121,10 @@ export default function StudentView() {
 function Betyg({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="text-center">
-      <div className="text-xs text-slate-400">{label}</div>
+      <div className="text-2xs uppercase tracking-wider text-ink-faint mb-1">{label}</div>
       <div
-        className="text-2xl font-bold w-10 h-10 rounded-lg text-white flex items-center justify-center"
-        style={{ background: value ? BETYG_COLORS[value] ?? "#64748b" : "#cbd5e1" }}
+        className="text-2xl font-display font-semibold w-11 h-11 rounded-md text-white flex items-center justify-center shadow-card"
+        style={{ background: value ? BETYG_COLORS[value] ?? "#5a6573" : "#c9cfd6" }}
       >
         {value ?? "–"}
       </div>

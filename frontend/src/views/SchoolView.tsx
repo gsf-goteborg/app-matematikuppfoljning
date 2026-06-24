@@ -36,16 +36,17 @@ export default function SchoolView() {
 
   return (
     <div>
-      <Link to="/" className="text-sm text-slate-500 hover:underline">
+      <Link to="/" className="text-sm text-ink-soft hover:text-gbg-blue transition-colors">
         ← Huvudman
       </Link>
-      <h1 className="text-2xl font-bold mb-1 mt-1">{data.namn}</h1>
-      <p className="text-slate-500 mb-4">
+      <span className="block text-2xs uppercase tracking-[0.2em] text-gbg-blue font-semibold mt-2">
+        Skola
+      </span>
+      <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-1 mt-0.5">{data.namn}</h1>
+      <p className="text-ink-soft mb-5 tnum">
         {data.n_students} elever · intag-index {data.intag_index.toFixed(2)} (endast
         likvärdighetsanalys) · F-andel åk 9:{" "}
-        <span className="font-semibold text-slate-700">
-          {Math.round(data.f_rate_ak9 * 100)}%
-        </span>
+        <span className="font-semibold text-ink">{Math.round(data.f_rate_ak9 * 100)}%</span>
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -56,16 +57,19 @@ export default function SchoolView() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trend} margin={{ top: 8, right: 16, bottom: 0, left: -24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="grade" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} unit="%" />
-                <Tooltip formatter={(v: number) => [`${v}%`, "Förhöjd risk"]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e4e0d4" />
+                <XAxis dataKey="grade" tick={{ fontSize: 12, fill: "#5a6573" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#5a6573" }} unit="%" />
+                <Tooltip
+                  formatter={(v: number) => [`${v}%`, "Förhöjd risk"]}
+                  contentStyle={{ borderRadius: 8, border: "1px solid #e4e0d4", fontSize: 12 }}
+                />
                 <Line
                   type="monotone"
                   dataKey="pct"
-                  stroke="#dc2626"
+                  stroke="#e8364a"
                   strokeWidth={3}
-                  dot={{ r: 3 }}
+                  dot={{ r: 3, fill: "#e8364a" }}
                   isAnimationActive={false}
                 />
               </LineChart>
@@ -73,15 +77,18 @@ export default function SchoolView() {
           </div>
         </Section>
 
-        <Section title="Grindstatus per årskurs" subtitle="Andel som bemästrar grinden.">
+        <Section title="Tröskelstatus per årskurs" subtitle="Andel som bemästrar tröskeln.">
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={gateData} margin={{ top: 8, right: 16, bottom: 0, left: -24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 12 }} unit="%" />
-                <Tooltip formatter={(v: number) => [`${v}%`, "Bemästrar"]} />
-                <Bar dataKey="pct" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e4e0d4" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#5a6573" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#5a6573" }} unit="%" />
+                <Tooltip
+                  formatter={(v: number) => [`${v}%`, "Bemästrar"]}
+                  contentStyle={{ borderRadius: 8, border: "1px solid #e4e0d4", fontSize: 12 }}
+                />
+                <Bar dataKey="pct" fill="#005293" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -94,16 +101,18 @@ export default function SchoolView() {
             <Link
               key={c.klass_id}
               to={`/klass/${c.klass_id}`}
-              className="rounded-lg border p-3 hover:bg-slate-50"
+              className="rounded-lg border border-paper-line bg-white p-3.5 hover:border-gbg-blue hover:shadow-card transition-all group"
             >
-              <div className="font-semibold">{c.beteckning}</div>
-              <div className="text-xs text-slate-500">
+              <div className="font-display font-semibold text-ink group-hover:text-gbg-blue transition-colors">
+                {c.beteckning}
+              </div>
+              <div className="text-xs text-ink-soft tnum">
                 {gradeLabel(c.arskurs)} · {c.n} elever
               </div>
-              <div className="text-2xl font-bold text-red-600 mt-1">
+              <div className="text-3xl font-display font-semibold text-gbg-red mt-1.5 tnum">
                 {Math.round(c.share_high_risk * 100)}%
               </div>
-              <div className="text-xs text-slate-400">i förhöjd risk</div>
+              <div className="text-2xs uppercase tracking-wider text-ink-faint">i förhöjd risk</div>
             </Link>
           ))}
         </div>

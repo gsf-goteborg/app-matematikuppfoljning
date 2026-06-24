@@ -1,6 +1,8 @@
 // Shared presentation helpers (colours, labels). Swedish UI text throughout.
+// All colours come from Göteborgs Stad's official palette (grafisk profil).
 
-export const RISK_COLORS = ["#16a34a", "#eab308", "#f97316", "#dc2626"];
+// Risk 0–3 mapped onto the official green → red scale.
+export const RISK_COLORS = ["#6a9a1f", "#f9b000", "#f47815", "#e8364a"];
 export const RISK_LABELS = ["Ingen risk", "Bevaka", "Förhöjd risk", "Kritisk risk"];
 
 export function riskColor(level: number): string {
@@ -9,19 +11,19 @@ export function riskColor(level: number): string {
 
 // Mastery 0..1 -> heatmap colour (red -> yellow -> green). null = not measured.
 export function masteryColor(m: number | null): string {
-  if (m === null || m === undefined) return "#e2e8f0"; // slate-200 (omätt)
-  if (m < 0.35) return "#dc2626";
-  if (m < 0.5) return "#f97316";
-  if (m < 0.65) return "#eab308";
-  if (m < 0.8) return "#84cc16";
-  return "#16a34a";
+  if (m === null || m === undefined) return "#e4e0d4"; // paper-line (omätt)
+  if (m < 0.35) return "#e8364a"; // gbg-red
+  if (m < 0.5) return "#f47815"; // gbg-orange
+  if (m < 0.65) return "#f9b000"; // gbg-orange-light
+  if (m < 0.8) return "#9ec038"; // gbg-green-light
+  return "#6a9a1f"; // gbg-green
 }
 
 export const STATUS_COLORS: Record<string, string> = {
-  bemastrad: "#16a34a",
-  lucka: "#dc2626",
-  blockerad: "#f97316",
-  omatt: "#cbd5e1",
+  bemastrad: "#6a9a1f", // gbg-green
+  lucka: "#e8364a", // gbg-red
+  blockerad: "#f47815", // gbg-orange
+  omatt: "#c9cfd6",
 };
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -44,11 +46,12 @@ export function gradeLabel(arskurs: number): string {
   return arskurs === 0 ? "FK" : `Åk ${arskurs}`;
 }
 
+// Betyg F→A across the official palette: red (fail) → blue (top).
 export const BETYG_COLORS: Record<string, string> = {
-  F: "#dc2626",
-  E: "#84cc16",
-  D: "#65a30d",
-  C: "#16a34a",
-  B: "#0d9488",
-  A: "#0891b2",
+  F: "#e8364a", // gbg-red
+  E: "#f47815", // gbg-orange
+  D: "#9ec038", // gbg-green-light
+  C: "#6a9a1f", // gbg-green
+  B: "#005293", // gbg-blue
+  A: "#00395f", // gbg-blue-dark
 };
