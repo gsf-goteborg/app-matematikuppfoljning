@@ -22,12 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Enables Pages on the repo automatically (no manual Settings toggle).
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
