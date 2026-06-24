@@ -114,6 +114,31 @@ direkt till dem; id:na hämtas också från `GET /api/demo/scenarios`.
 | GET | `/api/students?risk_level=3` |
 | POST | `/api/seed?students=2000&seed=42` |
 
+## Publicera demon till GitHub Pages
+
+Eftersom det är **syntetisk data** kan hela appen köras statiskt – ingen server
+behövs. Ett bygg-steg kör simulatorn och skriver alla API-svar till statiska
+JSON-filer (`backend/snapshot.py`), och frontenden läser dem direkt
+(`VITE_STATIC=1`).
+
+Workflowen [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
+gör allt vid push till `main`. Aktivera en gång:
+
+1. GitHub → repo **Settings ▸ Pages ▸ Build and deployment ▸ Source = GitHub Actions**.
+2. Pusha till `main` (eller kör workflowen manuellt).
+
+Sidan hamnar på `https://<org>.github.io/app-matematikuppfoljning/`.
+
+Bygg snapshot + statisk sajt lokalt:
+
+```bash
+cd backend && ../$(VENV_BIN)/pip install -e ".[snapshot]" && ../$(VENV_BIN)/python snapshot.py
+cd ../frontend && VITE_STATIC=1 VITE_BASE=/app-matematikuppfoljning/ npm run build && npm run preview
+```
+
+> Bas-sökvägen (`VITE_BASE`) måste matcha repo-namnet eftersom project-Pages
+> serveras under `/<repo>/`. SPA-routing klaras av en `404.html`-kopia.
+
 ## Produktionsväg (utanför demon)
 
 SQLite → Supabase/Postgres (medallion: bronze rådata, silver mastery per nod,

@@ -31,6 +31,9 @@ dist/
 # generated at seed time
 backend/seed_scenarios.json
 
+# generated static API snapshot for GitHub Pages (built in CI, never committed)
+frontend/public/api/
+
 # TS build artifacts
 *.tsbuildinfo
 frontend/vite.config.js
