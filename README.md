@@ -77,8 +77,9 @@ Hela DB-access går via SQLModel – ingen SQLite-specifik SQL. Byt
 ### Vakter inbyggda från start
 - **Riskmodellen använder enbart färdighetssignal.** Socioekonomisk bakgrund
   (`ses_kontext`) och skolans socioekonomiska index (`socioekonomiskt_index`,
-  syntetiskt, högre = större behov som i stadens resursfördelning) finns *endast*
-  för likvärdighetsanalys på aggregerad nivå – aldrig som input till en elevs risk.
+  syntetiskt men på stadens skala: 0–100 lågindex, 101–200 mellanindex, över 200
+  högindex, där lågindex är mer gynnsam elevsammansättning) finns *endast* för
+  likvärdighetsanalys på aggregerad nivå – aldrig som input till en elevs risk.
 - Varje röd siffra leder till **nästa steg** (vilken förkunskap att repetera),
   inte till en stämpel.
 - Allt är tydligt märkt **syntetisk data**.

@@ -215,9 +215,10 @@ export default function HuvudmanView() {
           <EquityChart points={data.equity_by_ses} title="F-andel per elevens bakgrundskategori (A–D)" />
         </div>
         <p className="text-xs text-slate-400 mt-2">
-          Socioekonomiskt index: högre index = större behov, som i stadens resursfördelning
-          (syntetiskt i demon). En skola med systematisk tröskellucka kan ha hög F-andel oberoende
-          av index – det är en undervisnings- och systemfråga, inte en elevbakgrundsfråga.
+          Socioekonomiskt index enligt stadens indelning: lågindex (0–100) är mer gynnsam
+          elevsammansättning, högindex (över 200) mindre. Syntetiskt i demon. En skola med
+          systematisk tröskellucka kan ha hög F-andel oberoende av index – det är en
+          undervisnings- och systemfråga, inte en elevbakgrundsfråga.
         </p>
       </Section>
     </div>

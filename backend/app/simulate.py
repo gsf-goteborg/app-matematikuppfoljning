@@ -433,9 +433,10 @@ class Simulator:
         gaps: list[Kunskapslucka] = []
         scenarios: dict[str, str] = {}
 
-        # Spread the socioeconomic index across schools (higher = greater need,
-        # as in the city's resource allocation); school 0 is the "grindskola".
-        # (1 - the former intag scale, so every school keeps its place in the story.)
+        # Spread the socioeconomic index across schools; school 0 is the
+        # "grindskola". Internally a 0..1 need level (1 - the former intag scale,
+        # so every school keeps its place in the story); stored on the city's
+        # scale, ~30-250, where 0-100 is lågindex and >200 högindex.
         sei_values = 1.0 - np.linspace(0.30, 0.85, self.n_schools)
         rng.shuffle(sei_values)
 
@@ -452,8 +453,9 @@ class Simulator:
             if is_grindskola:
                 # Force an index-independent gate failure school for the demo.
                 namn = "Centrumskolan"
+            index = int(round(30 + (sei - 0.15) / 0.55 * 205))
             schools.append(School(
-                id=school_id, huvudman_id=1, namn=namn, socioekonomiskt_index=round(sei, 3),
+                id=school_id, huvudman_id=1, namn=namn, socioekonomiskt_index=index,
             ))
 
             school_effect = 0.5 * (0.45 - sei)  # small effect; spread only

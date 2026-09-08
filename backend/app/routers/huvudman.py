@@ -125,18 +125,18 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
         sc = next((s for s in schools if s.id == school_id), None)
         if sc is None:
             return None
-        # Higher index = greater need, as in the city's resource allocation.
-        if sc.socioekonomiskt_index > 0.55:
-            return "Högt index"
-        if sc.socioekonomiskt_index > 0.35:
-            return "Medel"
-        return "Lågt index"
+        # The city's established bands. Lågindex = more favourable intake.
+        if sc.socioekonomiskt_index > 200:
+            return "Högindex"
+        if sc.socioekonomiskt_index > 100:
+            return "Mellanindex"
+        return "Lågindex"
 
     index_buckets = f_rate_for(index_bucket)
     ses_buckets = f_rate_for(lambda sid: student_ses.get(sid))
 
     # Low to high -- alphabetical order would scramble the scale.
-    bucket_order = {"Lågt index": 0, "Medel": 1, "Högt index": 2}
+    bucket_order = {"Lågindex": 0, "Mellanindex": 1, "Högindex": 2}
     equity_by_index = [
         EquityPoint(bucket=b, f_rate=round(f / n, 3) if n else 0.0, n=n)
         for b, (f, n) in sorted(index_buckets.items(), key=lambda kv: bucket_order.get(kv[0], 9))

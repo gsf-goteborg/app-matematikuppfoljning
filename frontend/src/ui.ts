@@ -42,6 +42,13 @@ export const CONTENT_AREA_LABELS: Record<string, string> = {
   problemlosning: "Problemlösning",
 };
 
+// The city's socioeconomic index bands. Lågindex = more favourable intake.
+export function indexBand(index: number): string {
+  if (index > 200) return "högindex";
+  if (index > 100) return "mellanindex";
+  return "lågindex";
+}
+
 export function gradeLabel(arskurs: number): string {
   return arskurs === 0 ? "FK" : `Åk ${arskurs}`;
 }

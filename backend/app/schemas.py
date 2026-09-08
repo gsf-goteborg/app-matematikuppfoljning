@@ -249,7 +249,7 @@ class GateThroughput(BaseModel):
 class SchoolGateSummary(BaseModel):
     school_id: int
     namn: str
-    socioekonomiskt_index: float
+    socioekonomiskt_index: int
     gate_shares: dict[str, float]  # node_id -> share mastered (latest relevant grade)
     f_rate_ak9: float
     n_students: int
@@ -308,7 +308,7 @@ class CohortTrendPoint(BaseModel):
 class SchoolDetail(BaseModel):
     school_id: int
     namn: str
-    socioekonomiskt_index: float
+    socioekonomiskt_index: int
     n_students: int
     cohort_trend: list[CohortTrendPoint]
     gate_status_by_grade: list[GateThroughput]

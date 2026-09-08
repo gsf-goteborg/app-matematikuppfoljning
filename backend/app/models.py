@@ -24,9 +24,10 @@ class School(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     huvudman_id: int = Field(foreign_key="huvudman.id", index=True)
     namn: str
-    # 0..1, higher = greater need (the direction used in the city's resource
-    # allocation). ENDAST for equity analysis. NEVER a risk predictor.
-    socioekonomiskt_index: float
+    # The city's scale (~30-250): 0-100 lågindex, 101-200 mellanindex, >200
+    # högindex. Lågindex = more favourable intake, higher = greater need.
+    # ENDAST for equity analysis. NEVER a risk predictor.
+    socioekonomiskt_index: int
 
 
 class Klass(SQLModel, table=True):

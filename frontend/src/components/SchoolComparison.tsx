@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { SchoolGateSummary } from "../api/client";
+import { indexBand } from "../ui";
 
 const GATES = [
   { id: "N6", label: "Talfakta (åk 3)" },
@@ -101,17 +102,20 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
                   {Math.round(s.f_rate_ak9 * 100)}%
                 </span>
               </td>
-              <td className="py-2.5 pl-3 text-center text-ink-faint tnum">
-                {s.socioekonomiskt_index.toFixed(2)}
+              <td
+                className="py-2.5 pl-3 text-center text-ink-faint tnum"
+                title={indexBand(s.socioekonomiskt_index)}
+              >
+                {s.socioekonomiskt_index}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <p className="text-xs text-ink-faint mt-3">
-        * Socioekonomiskt index: högre index = större behov, samma riktning som i stadens
-        resursfördelning (syntetiskt i demon). Visas bara för likvärdighetsanalys och påverkar
-        aldrig en elevs risknivå.
+        * Socioekonomiskt index enligt stadens indelning: 0–100 lågindex, 101–200 mellanindex,
+        över 200 högindex. Lågindex = mer gynnsam elevsammansättning. Syntetiskt i demon. Visas
+        bara för likvärdighetsanalys och påverkar aldrig en elevs risknivå.
         Stängningsgraden ska läsas tillsammans med upptäcktsgraden bredvid: en skola som hittar få
         luckor kan se ut att stänga nästan alla. Klicka på en rad för skolvy.
       </p>
