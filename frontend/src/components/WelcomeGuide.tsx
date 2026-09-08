@@ -8,7 +8,7 @@ const STEPS = [
     n: 1,
     color: "var(--gbg-blue)",
     title: "Mät kontinuerligt – inte bara i slutet",
-    body: "Vi följer var i kunskapskedjan varje elev är, från förskoleklass till åk 9. Dagens betyg i åk 9 är en lagging indicator som kommer för sent.",
+    body: "Vi följer var i kunskapskedjan varje elev är, från förskoleklass till åk 9. Dagens betyg i åk 9 är ett kvitto som kommer för sent.",
   },
   {
     n: 2,
@@ -59,7 +59,7 @@ export default function WelcomeGuide({ open, onClose }: { open: boolean; onClose
       ? [
           {
             label: "Demons höjdpunkt",
-            sub: "Tysta eleven: Dagens vs Modern",
+            sub: "Tysta eleven: dagens och modern uppföljning",
             to: `/elev/${tysta}/jamforelse`,
             accent: "text-gbg-green-dark",
           },

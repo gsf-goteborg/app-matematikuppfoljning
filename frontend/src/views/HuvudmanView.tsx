@@ -55,7 +55,7 @@ function KpiBand({ kpi }: { kpi: KommunKpi }) {
     {
       value: `${Math.round(kpi.f_rate_ak9 * 100)}%`,
       label: "F-andel åk 9",
-      sub: "Lagging indicator",
+      sub: "Syns först när det är för sent",
       accent: "text-ink",
       to: null,
     },
@@ -202,21 +202,22 @@ export default function HuvudmanView() {
         <SchoolComparison schools={data.schools} />
       </Section>
 
-      <Section title="Systemvarningar" subtitle="Leading indicators, inte slutbetyg.">
+      <Section title="Systemvarningar" subtitle="Tidiga signaler – inte slutbetyg i efterhand.">
         <AlertsPanel alerts={data.alerts} />
       </Section>
 
       <Section
         title="Likvärdighet (analys – ej riskinput)"
-        subtitle="Systemet ser mönstret mot intag och socioekonomi, men använder det aldrig för att förutsäga en enskild elevs risk."
+        subtitle="Systemet ser mönstret mot elevunderlag och socioekonomi, men använder det aldrig för att förutsäga en enskild elevs risk."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <EquityChart points={data.equity_by_intag} title="F-andel per intagsnivå" />
+          <EquityChart points={data.equity_by_intag} title="F-andel per elevunderlag (skola)" />
           <EquityChart points={data.equity_by_ses} title="F-andel per socioekonomisk kategori" />
         </div>
         <p className="text-xs text-slate-400 mt-2">
-          Notera: en skola med systematisk tröskellucka (t.ex. proportionalitet) kan ha hög F-andel
-          oberoende av intag – det är en undervisnings- och systemfråga, inte en elevbakgrundsfråga.
+          Elevunderlag är ett index för hur gynnsam skolans socioekonomiska elevsammansättning är
+          (syntetiskt i demon). En skola med systematisk tröskellucka kan ha hög F-andel oberoende
+          av elevunderlag – det är en undervisnings- och systemfråga, inte en elevbakgrundsfråga.
         </p>
       </Section>
     </div>

@@ -112,8 +112,8 @@ export default function ClassView() {
       )}
 
       <Section
-        title="Mastery-heatmap"
-        subtitle="Elever × kunskapsnoder. Klicka på en elev för elevkortet."
+        title="Klassens kunskapskarta"
+        subtitle="Elever × kunskapsmoment. Klicka på en elev för elevkortet." 
       >
         <MasteryHeatmap data={h} />
       </Section>

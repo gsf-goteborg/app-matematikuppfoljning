@@ -49,7 +49,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       items.push({
         id: "demo-tyst",
         label: "Tysta eleven – jämförelse",
-        sub: `${sc.tysta_eleven} · Dagens vs Modern`,
+        sub: `${sc.tysta_eleven} · dagens och modern uppföljning`,
         to: `/elev/${sc.tysta_eleven}/jamforelse`,
         group: "Demo-scenarier",
       });

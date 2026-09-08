@@ -5,8 +5,8 @@
 > mät **var i kunskapskedjan varje elev är**, kontinuerligt, så att ingen elev
 > tyst halkar efter och ingen blir chockad av många F i åk 9.
 
-Dagens uppföljning mäter resultatet i slutet (betyg i åk 9) – ett *lagging
-indicator* som kommer för sent. Den här appen vänder på logiken och gör den
+Dagens uppföljning mäter resultatet i slutet (betyg i åk 9) – ett kvitto som
+kommer för sent. Den här appen vänder på logiken och gör den
 **kunskapslucka som uppstår flera år tidigare** (oftast vid proportionalitet i åk 6
 eller övergången till algebra i åk 7) synlig i realtid, kopplad till vad som ska
 undervisas härnäst.
@@ -76,7 +76,8 @@ Hela DB-access går via SQLModel – ingen SQLite-specifik SQL. Byt
 
 ### Vakter inbyggda från start
 - **Riskmodellen använder enbart färdighetssignal.** Socioekonomisk bakgrund
-  (`ses_kontext`) och skolans `intag_index` finns *endast* för
+  (`ses_kontext`) och skolans elevunderlag (`intag_index`, ett syntetiskt index
+  0–1 för hur gynnsam elevsammansättningen är) finns *endast* för
   likvärdighetsanalys på aggregerad nivå – aldrig som input till en elevs risk.
 - Varje röd siffra leder till **nästa steg** (vilken förkunskap att repetera),
   inte till en stämpel.
@@ -156,7 +157,7 @@ direkt till dem; id:na hämtas också från `GET /api/demo/scenarios`.
 |---|---|---|
 | **Den tysta eleven** | `elev-00987` | Godkänd t.o.m. åk 5, tappar proportionalitet (N12) i åk 6, F i åk 9. Risk röd redan från åk 6 – men ingen insats påbörjas någonsin, och luckorna kaskaderar. Perfekt för jämförelsevyn. |
 | **Återhämtaren** | `elev-01327` | *Samma* N12-lucka, upptäckt samma dag som hos den tysta eleven – men här sätts en insats in i tid (HT åk 7), ommätning tio veckor senare visar 71 %, luckan stängs inom en termin. Risken faller från åk 7, betyg A. Kontrasten mellan de två eleverna *är* poängen. |
-| **Tröskelskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av intag). Driver huvudmannavyn. |
+| **Tröskelskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av elevunderlag). Driver huvudmannavyn. |
 
 > Kör du med en annan `SEED`/`STUDENTS` får eleverna andra id:n – kolla
 > `GET /api/demo/scenarios` eller utskriften från `make seed`.

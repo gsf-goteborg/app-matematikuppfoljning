@@ -42,7 +42,7 @@ export default function StudentView() {
           to={`/elev/${s.id}/jamforelse`}
           className="px-4 py-2 bg-gbg-blue text-white rounded-md text-sm font-medium hover:bg-gbg-blue-dark transition-colors shadow-card"
         >
-          Jämför: Dagens vs Modern uppföljning →
+          Jämför: dagens och modern uppföljning →
         </Link>
       </div>
 

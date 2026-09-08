@@ -48,7 +48,7 @@ export default function SchoolView() {
       </span>
       <h1 className="text-3xl sm:text-4xl font-semibold text-ink mb-1 mt-0.5">{data.namn}</h1>
       <p className="text-ink-soft mb-5 tnum">
-        {data.n_students} elever · intag-index {data.intag_index.toFixed(2)} (endast
+        {data.n_students} elever · elevunderlag {data.intag_index.toFixed(2)} (index, bara för
         likvärdighetsanalys) · F-andel åk 9:{" "}
         <span className="font-semibold text-ink">{Math.round(data.f_rate_ak9 * 100)}%</span>
       </p>

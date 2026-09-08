@@ -72,8 +72,8 @@ export default function ComparisonView() {
           </div>
 
           <div className="mt-4 p-3.5 bg-gbg-red-light/25 border-l-4 border-gbg-red rounded-r text-sm text-ink">
-            Ett <b>{today.provbetyg ?? "F"}</b> dyker upp i åk 9 – utan förvarning. Inga leading
-            indicators, ingen åtgärd i tid.
+            Ett <b>{today.provbetyg ?? "F"}</b> dyker upp i åk 9 – utan förvarning. Inga tidiga
+            signaler, ingen åtgärd i tid.
           </div>
         </div>
 

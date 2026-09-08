@@ -125,11 +125,12 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
         sc = next((s for s in schools if s.id == school_id), None)
         if sc is None:
             return None
+        # Elevunderlag: how favourable the school's intake is (synthetic index).
         if sc.intag_index < 0.45:
-            return "Lågt intag"
+            return "Mindre gynnsamt"
         if sc.intag_index < 0.65:
             return "Medel"
-        return "Högt intag"
+        return "Gynnsamt"
 
     intag_buckets = f_rate_for(intag_bucket)
     ses_buckets = f_rate_for(lambda sid: student_ses.get(sid))

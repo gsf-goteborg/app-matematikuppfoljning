@@ -57,7 +57,7 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
               F-andel åk 9
             </th>
             <th className="py-2 pl-3 text-center text-2xs uppercase tracking-wider font-semibold">
-              Intag*
+              Elevunderlag*
             </th>
           </tr>
         </thead>
@@ -109,7 +109,9 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
         </tbody>
       </table>
       <p className="text-xs text-ink-faint mt-3">
-        * Intag-index visas endast för likvärdighetsanalys och påverkar aldrig en elevs risk-score.
+        * Elevunderlag: index 0–1 för hur gynnsam skolans socioekonomiska elevsammansättning är
+        (syntetiskt i demon). Visas bara för likvärdighetsanalys och påverkar aldrig en elevs
+        risknivå.
         Stängningsgraden ska läsas tillsammans med upptäcktsgraden bredvid: en skola som hittar få
         luckor kan se ut att stänga nästan alla. Klicka på en rad för skolvy.
       </p>
