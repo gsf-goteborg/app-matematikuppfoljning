@@ -435,7 +435,8 @@ class Simulator:
 
         # Spread the socioeconomic index across schools (higher = greater need,
         # as in the city's resource allocation); school 0 is the "grindskola".
-        sei_values = np.linspace(0.15, 0.70, self.n_schools)
+        # (1 - the former intag scale, so every school keeps its place in the story.)
+        sei_values = 1.0 - np.linspace(0.30, 0.85, self.n_schools)
         rng.shuffle(sei_values)
 
         lasar = "2025/26"
