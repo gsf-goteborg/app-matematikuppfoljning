@@ -76,9 +76,9 @@ Hela DB-access går via SQLModel – ingen SQLite-specifik SQL. Byt
 
 ### Vakter inbyggda från start
 - **Riskmodellen använder enbart färdighetssignal.** Socioekonomisk bakgrund
-  (`ses_kontext`) och skolans elevunderlag (`intag_index`, ett syntetiskt index
-  0–1 för hur gynnsam elevsammansättningen är) finns *endast* för
-  likvärdighetsanalys på aggregerad nivå – aldrig som input till en elevs risk.
+  (`ses_kontext`) och skolans socioekonomiska index (`socioekonomiskt_index`,
+  syntetiskt, högre = större behov som i stadens resursfördelning) finns *endast*
+  för likvärdighetsanalys på aggregerad nivå – aldrig som input till en elevs risk.
 - Varje röd siffra leder till **nästa steg** (vilken förkunskap att repetera),
   inte till en stämpel.
 - Allt är tydligt märkt **syntetisk data**.
@@ -157,7 +157,7 @@ direkt till dem; id:na hämtas också från `GET /api/demo/scenarios`.
 |---|---|---|
 | **Den tysta eleven** | `elev-00987` | Godkänd t.o.m. åk 5, tappar proportionalitet (N12) i åk 6, F i åk 9. Risk röd redan från åk 6 – men ingen insats påbörjas någonsin, och luckorna kaskaderar. Perfekt för jämförelsevyn. |
 | **Återhämtaren** | `elev-01327` | *Samma* N12-lucka, upptäckt samma dag som hos den tysta eleven – men här sätts en insats in i tid (HT åk 7), ommätning tio veckor senare visar 71 %, luckan stängs inom en termin. Risken faller från åk 7, betyg A. Kontrasten mellan de två eleverna *är* poängen. |
-| **Tröskelskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av elevunderlag). Driver huvudmannavyn. |
+| **Tröskelskolan** | Skola 1 (*Centrumskolan*) | Skola där N12 systematiskt missas i åk 6 → kraftigt förhöjd F-andel i åk 9 (oberoende av socioekonomiskt index). Driver huvudmannavyn. |
 
 > Kör du med en annan `SEED`/`STUDENTS` får eleverna andra id:n – kolla
 > `GET /api/demo/scenarios` eller utskriften från `make seed`.

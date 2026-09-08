@@ -57,7 +57,7 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
               F-andel åk 9
             </th>
             <th className="py-2 pl-3 text-center text-2xs uppercase tracking-wider font-semibold">
-              Elevunderlag*
+              Soc.ek. index*
             </th>
           </tr>
         </thead>
@@ -102,16 +102,16 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
                 </span>
               </td>
               <td className="py-2.5 pl-3 text-center text-ink-faint tnum">
-                {s.intag_index.toFixed(2)}
+                {s.socioekonomiskt_index.toFixed(2)}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
       <p className="text-xs text-ink-faint mt-3">
-        * Elevunderlag: index 0–1 för hur gynnsam skolans socioekonomiska elevsammansättning är
-        (syntetiskt i demon). Visas bara för likvärdighetsanalys och påverkar aldrig en elevs
-        risknivå.
+        * Socioekonomiskt index: högre index = större behov, samma riktning som i stadens
+        resursfördelning (syntetiskt i demon). Visas bara för likvärdighetsanalys och påverkar
+        aldrig en elevs risknivå.
         Stängningsgraden ska läsas tillsammans med upptäcktsgraden bredvid: en skola som hittar få
         luckor kan se ut att stänga nästan alla. Klicka på en rad för skolvy.
       </p>

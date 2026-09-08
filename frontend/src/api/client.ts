@@ -159,7 +159,7 @@ export interface ClassFocus {
 export interface SchoolGateSummary {
   school_id: number;
   namn: string;
-  intag_index: number;
+  socioekonomiskt_index: number;
   gate_shares: Record<string, number>;
   f_rate_ak9: number;
   n_students: number;
@@ -204,7 +204,7 @@ export interface HuvudmanOverview {
   schools: SchoolGateSummary[];
   gate_throughput: GateThroughput[];
   alerts: Alert[];
-  equity_by_intag: EquityPoint[];
+  equity_by_index: EquityPoint[];
   equity_by_ses: EquityPoint[];
   loop: LoopSummary;
   loop_by_termin: LoopTerminPoint[];
@@ -217,7 +217,7 @@ export interface CohortTrendPoint {
 export interface SchoolDetail {
   school_id: number;
   namn: string;
-  intag_index: number;
+  socioekonomiskt_index: number;
   n_students: number;
   cohort_trend: CohortTrendPoint[];
   gate_status_by_grade: GateThroughput[];

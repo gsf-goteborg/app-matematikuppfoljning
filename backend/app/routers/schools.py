@@ -96,7 +96,7 @@ def school_detail(school_id: int, session: Session = Depends(get_session)) -> Sc
                      if c.ommatning_forsenad or c.status == "vantar"]
 
     return SchoolDetail(
-        school_id=school.id, namn=school.namn, intag_index=school.intag_index,
+        school_id=school.id, namn=school.namn, socioekonomiskt_index=school.socioekonomiskt_index,
         n_students=len(students), cohort_trend=cohort_trend,
         gate_status_by_grade=gate_status_by_grade, f_rate_ak9=f_rate,
         classes_driving_risk=class_risk[:8],

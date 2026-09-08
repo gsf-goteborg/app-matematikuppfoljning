@@ -57,7 +57,7 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
         f_by_school[school.id] = (f_count, n_out)
         sl = G.summary_for(gaps_by_school.get(school.id, []), len(sids))
         school_summaries.append(SchoolGateSummary(
-            school_id=school.id, namn=school.namn, intag_index=school.intag_index,
+            school_id=school.id, namn=school.namn, socioekonomiskt_index=school.socioekonomiskt_index,
             gate_shares=gate_shares,
             f_rate_ak9=round(f_count / n_out, 3) if n_out else 0.0,
             n_students=len(sids),
@@ -120,26 +120,26 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
             buckets[b] = (f + (1 if o.provbetyg == "F" else 0), n + 1)
         return buckets
 
-    def intag_bucket(sid: str) -> str | None:
+    def index_bucket(sid: str) -> str | None:
         school_id = student_school.get(sid)
         sc = next((s for s in schools if s.id == school_id), None)
         if sc is None:
             return None
-        # Elevunderlag: how favourable the school's intake is (synthetic index).
-        if sc.intag_index < 0.45:
-            return "Mindre gynnsamt"
-        if sc.intag_index < 0.65:
+        # Higher index = greater need, as in the city's resource allocation.
+        if sc.socioekonomiskt_index > 0.55:
+            return "Högt index"
+        if sc.socioekonomiskt_index > 0.35:
             return "Medel"
-        return "Gynnsamt"
+        return "Lågt index"
 
-    intag_buckets = f_rate_for(intag_bucket)
+    index_buckets = f_rate_for(index_bucket)
     ses_buckets = f_rate_for(lambda sid: student_ses.get(sid))
 
-    # From least to most favourable -- alphabetical order would scramble the scale.
-    bucket_order = {"Mindre gynnsamt": 0, "Medel": 1, "Gynnsamt": 2}
-    equity_by_intag = [
+    # Low to high -- alphabetical order would scramble the scale.
+    bucket_order = {"Lågt index": 0, "Medel": 1, "Högt index": 2}
+    equity_by_index = [
         EquityPoint(bucket=b, f_rate=round(f / n, 3) if n else 0.0, n=n)
-        for b, (f, n) in sorted(intag_buckets.items(), key=lambda kv: bucket_order.get(kv[0], 9))
+        for b, (f, n) in sorted(index_buckets.items(), key=lambda kv: bucket_order.get(kv[0], 9))
     ]
     equity_by_ses = [
         EquityPoint(bucket=b, f_rate=round(f / n, 3) if n else 0.0, n=n)
@@ -182,7 +182,7 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
         schools=school_summaries,
         gate_throughput=gate_throughput,
         alerts=alerts,
-        equity_by_intag=equity_by_intag,
+        equity_by_index=equity_by_index,
         equity_by_ses=equity_by_ses,
         loop=kommun_loop,
         loop_by_termin=[LoopTerminPoint(**p) for p in G.by_termin(all_gaps)],

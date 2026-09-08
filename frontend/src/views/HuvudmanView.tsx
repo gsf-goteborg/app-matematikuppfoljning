@@ -208,16 +208,16 @@ export default function HuvudmanView() {
 
       <Section
         title="Likvärdighet (analys – ej riskinput)"
-        subtitle="Systemet ser mönstret mot elevunderlag och socioekonomi, men använder det aldrig för att förutsäga en enskild elevs risk."
+        subtitle="Systemet ser mönstret mot socioekonomiskt index och elevbakgrund, men använder det aldrig för att förutsäga en enskild elevs risk."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <EquityChart points={data.equity_by_intag} title="F-andel per elevunderlag (skola)" />
-          <EquityChart points={data.equity_by_ses} title="F-andel per socioekonomisk kategori" />
+          <EquityChart points={data.equity_by_index} title="F-andel per skolans socioekonomiska index" />
+          <EquityChart points={data.equity_by_ses} title="F-andel per elevens bakgrundskategori (A–D)" />
         </div>
         <p className="text-xs text-slate-400 mt-2">
-          Elevunderlag är ett index för hur gynnsam skolans socioekonomiska elevsammansättning är
+          Socioekonomiskt index: högre index = större behov, som i stadens resursfördelning
           (syntetiskt i demon). En skola med systematisk tröskellucka kan ha hög F-andel oberoende
-          av elevunderlag – det är en undervisnings- och systemfråga, inte en elevbakgrundsfråga.
+          av index – det är en undervisnings- och systemfråga, inte en elevbakgrundsfråga.
         </p>
       </Section>
     </div>

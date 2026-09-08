@@ -249,7 +249,7 @@ class GateThroughput(BaseModel):
 class SchoolGateSummary(BaseModel):
     school_id: int
     namn: str
-    intag_index: float
+    socioekonomiskt_index: float
     gate_shares: dict[str, float]  # node_id -> share mastered (latest relevant grade)
     f_rate_ak9: float
     n_students: int
@@ -268,7 +268,7 @@ class Alert(BaseModel):
 
 
 class EquityPoint(BaseModel):
-    bucket: str  # intag bucket or ses category
+    bucket: str  # school index bucket or pupil category
     f_rate: float
     n: int
 
@@ -293,7 +293,7 @@ class HuvudmanOverview(BaseModel):
     schools: list[SchoolGateSummary]
     gate_throughput: list[GateThroughput]
     alerts: list[Alert]
-    equity_by_intag: list[EquityPoint]
+    equity_by_index: list[EquityPoint]
     equity_by_ses: list[EquityPoint]
     loop: LoopSummary
     loop_by_termin: list[LoopTerminPoint]
@@ -308,7 +308,7 @@ class CohortTrendPoint(BaseModel):
 class SchoolDetail(BaseModel):
     school_id: int
     namn: str
-    intag_index: float
+    socioekonomiskt_index: float
     n_students: int
     cohort_trend: list[CohortTrendPoint]
     gate_status_by_grade: list[GateThroughput]

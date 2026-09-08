@@ -12,7 +12,7 @@ re-measurement that flows back into mastery and risk. Schools differ in how
 reliably they close the loop, independently of their intake -- that difference
 is the whole point of the huvudman view.
 
-GUARD (SPEC section 3): ``intag_index`` may influence ``aptitude`` here, in the
+GUARD (SPEC section 3): ``socioekonomiskt_index`` may influence ``aptitude`` here, in the
 data generation, to create realistic spread. It must NEVER become a predictor
 in ``risk.py``. Risk is computed purely from skill signal.
 """
@@ -66,7 +66,7 @@ SCHOOL_NAMES = [
 ]
 
 # How reliably each school closes the loop: (chance an intervention is started,
-# chance it works). Deliberately UNCORRELATED with intag_index -- closing gaps
+# chance it works). Deliberately UNCORRELATED with the socioeconomic index -- closing gaps
 # is a system behaviour, not an intake question. School 0 (Centrumskolan) sees
 # its gaps and rarely acts on them; that is the finding the demo is built on.
 SCHOOL_LOOP_PROFILES: list[tuple[float, float]] = [
@@ -433,9 +433,10 @@ class Simulator:
         gaps: list[Kunskapslucka] = []
         scenarios: dict[str, str] = {}
 
-        # Spread intag_index across schools; school 0 is the "grindskola".
-        intag_values = np.linspace(0.30, 0.85, self.n_schools)
-        rng.shuffle(intag_values)
+        # Spread the socioeconomic index across schools (higher = greater need,
+        # as in the city's resource allocation); school 0 is the "grindskola".
+        sei_values = np.linspace(0.15, 0.70, self.n_schools)
+        rng.shuffle(sei_values)
 
         lasar = "2025/26"
         current_year = 2025
@@ -444,15 +445,17 @@ class Simulator:
 
         for s_idx in range(self.n_schools):
             school_id = s_idx + 1
-            intag = float(intag_values[s_idx])
+            sei = float(sei_values[s_idx])
             is_grindskola = (s_idx == 0)
             namn = SCHOOL_NAMES[s_idx % len(SCHOOL_NAMES)]
             if is_grindskola:
-                # Force a low intag-independent gate failure school for the demo.
+                # Force an index-independent gate failure school for the demo.
                 namn = "Centrumskolan"
-            schools.append(School(id=school_id, huvudman_id=1, namn=namn, intag_index=round(intag, 3)))
+            schools.append(School(
+                id=school_id, huvudman_id=1, namn=namn, socioekonomiskt_index=round(sei, 3),
+            ))
 
-            school_effect = 0.5 * (intag - 0.55)  # small effect; spread only
+            school_effect = 0.5 * (0.45 - sei)  # small effect; spread only
             profile = SCHOOL_LOOP_PROFILES[s_idx % len(SCHOOL_LOOP_PROFILES)]
 
             for grade in GRADES:

@@ -1,6 +1,6 @@
 """SQLModel tables (see SPEC section 7).
 
-Note the guard baked into the schema: ``School.intag_index`` and
+Note the guard baked into the schema: ``School.socioekonomiskt_index`` and
 ``Student.ses_kontext`` exist ONLY for equity analysis at aggregate level and
 must never be used as input to a pupil's risk score (see risk.py).
 """
@@ -24,8 +24,9 @@ class School(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     huvudman_id: int = Field(foreign_key="huvudman.id", index=True)
     namn: str
-    # 0..1 -- ENDAST for equity analysis. NEVER a risk predictor.
-    intag_index: float
+    # 0..1, higher = greater need (the direction used in the city's resource
+    # allocation). ENDAST for equity analysis. NEVER a risk predictor.
+    socioekonomiskt_index: float
 
 
 class Klass(SQLModel, table=True):
