@@ -135,9 +135,11 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
     intag_buckets = f_rate_for(intag_bucket)
     ses_buckets = f_rate_for(lambda sid: student_ses.get(sid))
 
+    # From least to most favourable -- alphabetical order would scramble the scale.
+    bucket_order = {"Mindre gynnsamt": 0, "Medel": 1, "Gynnsamt": 2}
     equity_by_intag = [
         EquityPoint(bucket=b, f_rate=round(f / n, 3) if n else 0.0, n=n)
-        for b, (f, n) in sorted(intag_buckets.items())
+        for b, (f, n) in sorted(intag_buckets.items(), key=lambda kv: bucket_order.get(kv[0], 9))
     ]
     equity_by_ses = [
         EquityPoint(bucket=b, f_rate=round(f / n, 3) if n else 0.0, n=n)
