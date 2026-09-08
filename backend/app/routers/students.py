@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from .. import progression as prog
 from ..db import get_session
-from ..models import Ak9Outcome, Klass, RiskScore, School, Student
+from ..models import Ak9Outcome, Klass, Kunskapslucka, RiskScore, School, Student
 from ..schemas import (
     ComparisonView,
     NodeMastery,
@@ -15,6 +15,8 @@ from ..schemas import (
     StudentListItem,
 )
 from . import _helpers as H
+from .gaps import cards as gap_cards
+from .gaps import sort_key as gap_sort_key
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 
@@ -97,6 +99,11 @@ def get_student(student_id: str, session: Session = Depends(get_session)) -> Stu
     current = traj[-1] if traj else None
     outcome = session.get(Ak9Outcome, student_id)
 
+    gap_rows = session.exec(
+        select(Kunskapslucka).where(Kunskapslucka.student_id == student_id)
+    ).all()
+    gaps = sorted(gap_cards(session, list(gap_rows)), key=gap_sort_key)
+
     return StudentCard(
         id=student.id, klass_id=klass.id, klass_beteckning=klass.beteckning,
         arskurs=klass.arskurs, school_id=klass.school_id,
@@ -107,6 +114,7 @@ def get_student(student_id: str, session: Session = Depends(get_session)) -> Stu
         suggested_focus=current.suggested_focus if current else [],
         provbetyg=outcome.provbetyg if outcome else None,
         slutbetyg=outcome.slutbetyg if outcome else None,
+        gaps=gaps,
     )
 
 

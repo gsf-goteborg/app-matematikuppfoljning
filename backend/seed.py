@@ -22,6 +22,7 @@ from app.models import (
     DemoMeta,
     Huvudman,
     Klass,
+    Kunskapslucka,
     RiskScore,
     School,
     SkillEdge,
@@ -43,7 +44,7 @@ def _seed_progression(session: Session) -> None:
 
 
 def _clear(session: Session) -> None:
-    for model in (RiskScore, Ak9Outcome, Assessment, Student, TeacherKlass,
+    for model in (Kunskapslucka, RiskScore, Ak9Outcome, Assessment, Student, TeacherKlass,
                   Teacher, Klass, School, Huvudman, SkillEdge, SkillNode, DemoMeta):
         session.exec(delete(model))
 
@@ -71,6 +72,8 @@ def run_seed(students: int, seed: int) -> dict[str, str]:
             session.add(a)
         for o in result.outcomes:
             session.add(o)
+        for g in result.gaps:
+            session.add(g)
         session.commit()
 
         # Compute risk trajectories from the assessments we just wrote.
@@ -90,7 +93,7 @@ def run_seed(students: int, seed: int) -> dict[str, str]:
 
         print(f"Seeded: {len(result.schools)} skolor, {len(result.students)} elever, "
               f"{len(result.assessments)} mätningar, {len(result.outcomes)} åk9-utfall, "
-              f"{n_scores} riskpunkter.")
+              f"{n_scores} riskpunkter, {len(result.gaps)} kunskapsluckor.")
         print("Demo-scenarier:")
         for k, v in result.scenarios.items():
             print(f"  {k}: {v}")

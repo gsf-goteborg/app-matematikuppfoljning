@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from .. import progression as prog
 from ..db import get_session
-from ..models import Klass, RiskScore, School, Student
+from ..models import Klass, Kunskapslucka, RiskScore, School, Student
 from ..schemas import (
     ClassFocus,
     ClassHeatmap,
@@ -16,6 +16,7 @@ from ..schemas import (
     HeatmapRow,
 )
 from . import _helpers as H
+from . import gaps as G
 
 router = APIRouter(prefix="/api/classes", tags=["classes"])
 
@@ -82,7 +83,14 @@ def focus(klass_id: int, session: Session = Depends(get_session)) -> ClassFocus:
         raise HTTPException(status_code=404, detail="Klassen hittades inte")
     students = _class_students(session, klass_id)
     nodes = H.node_label_map(session)
-    n_total = len(students)
+
+    gap_rows = list(session.exec(
+        select(Kunskapslucka).where(Kunskapslucka.klass_id == klass_id)
+    ).all())
+    insats_per_node: dict[str, set[str]] = {}
+    for g in gap_rows:
+        if g.insats_startad is not None:
+            insats_per_node.setdefault(g.node_id, set()).add(g.student_id)
 
     # Latest mastery per student, capped at the class grade.
     masteries = {s.id: H.latest_mastery(session, s.id, max_grade=klass.arskurs) for s in students}
@@ -126,14 +134,23 @@ def focus(klass_id: int, session: Session = Depends(get_session)) -> ClassFocus:
             f"Repetera {node.label_sv} ({nid}) för dessa {len(sids)} elever "
             f"innan {succ_txt} byggs på."
         )
+        med_insats = len(set(sids) & insats_per_node.get(nid, set()))
         focus_groups.append(FocusGroup(
             node_id=nid, label_sv=node.label_sv, is_gate=node.is_gate,
             student_ids=sids, rationale=rationale,
+            n_med_insats=med_insats, n_utan_insats=len(sids) - med_insats,
         ))
         if len(focus_groups) >= 6:
             break
 
+    # Gaps waiting on somebody: overdue re-measurements first, then unstarted.
+    att_folja_upp = sorted(G.cards(session, gap_rows), key=G.sort_key)
+    att_folja_upp = [c for c in att_folja_upp
+                     if c.status in ("ommatning_forsenad", "insats_saknas", "pagaende", "kvarstar")]
+
     return ClassFocus(
         klass_id=klass.id, beteckning=klass.beteckning, arskurs=klass.arskurs,
         gates=gates, focus_groups=focus_groups,
+        loop=G.summary_for(gap_rows, len(students)),
+        att_folja_upp=att_folja_upp[:12],
     )

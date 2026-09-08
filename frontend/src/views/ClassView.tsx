@@ -1,15 +1,19 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useFetch } from "../useFetch";
 import GateStatusCards from "../components/GateStatusCards";
+import GapItem from "../components/LoopGap";
+import { LoopStatBand } from "../components/LoopStats";
 import MasteryHeatmap from "../components/MasteryHeatmap";
 import { ErrorBox, Loading, Section } from "../components/Section";
 import { gradeLabel } from "../ui";
 
 export default function ClassView() {
   const { id } = useParams();
+  const [version, setVersion] = useState(0);
   const heatmap = useFetch(() => api.classHeatmap(id!), [id]);
-  const focus = useFetch(() => api.classFocus(id!), [id]);
+  const focus = useFetch(() => api.classFocus(id!), [id, version]);
 
   if (heatmap.loading || focus.loading) return <Loading />;
   if (heatmap.error || !heatmap.data) return <ErrorBox error={heatmap.error ?? "okänt fel"} />;
@@ -26,7 +30,16 @@ export default function ClassView() {
           · {gradeLabel(h.arskurs)} · {h.school_namn}
         </span>
       </h1>
-      <p className="text-ink-soft mb-5">Lärarvyn: läs av läget – inga formulär att fylla i.</p>
+      <p className="text-ink-soft mb-5">
+        Lärarvyn: läs av läget. Det enda som rapporteras in är tre fält per lucka – att en insats
+        påbörjats, att den följts upp, och vad ommätningen visade.
+      </p>
+
+      {focus.data && (
+        <div className="mb-5">
+          <LoopStatBand loop={focus.data.loop} />
+        </div>
+      )}
 
       {focus.data && (
         <Section title="Tröskelstatus i klassen" subtitle="De tre kritiska trösklarna.">
@@ -59,6 +72,16 @@ export default function ClassView() {
                     {g.is_gate && "⛳ "}
                     {g.rationale}
                   </div>
+                  <div className="text-2xs mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                    <span className="text-gbg-blue-dark font-semibold">
+                      {g.n_med_insats} med påbörjad insats
+                    </span>
+                    {g.n_utan_insats > 0 && (
+                      <span className="text-gbg-red-dark font-semibold">
+                        {g.n_utan_insats} utan insats
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs mt-2 flex flex-wrap gap-1.5">
                     {g.student_ids.map((sid) => (
                       <Link
@@ -74,6 +97,24 @@ export default function ClassView() {
               ))}
             </ul>
           )}
+        </Section>
+      )}
+
+      {focus.data && focus.data.att_folja_upp.length > 0 && (
+        <Section
+          title="Att följa upp"
+          subtitle="Luckor som väntar på någon: försenad ommätning först, sedan de utan påbörjad insats."
+        >
+          <ul className="space-y-3">
+            {focus.data.att_folja_upp.map((g) => (
+              <GapItem
+                key={g.id}
+                gap={g}
+                showStudent
+                onUpdated={() => setVersion((v) => v + 1)}
+              />
+            ))}
+          </ul>
         </Section>
       )}
 

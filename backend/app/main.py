@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import CORS_ORIGINS
 from .db import init_db
-from .routers import classes, huvudman, progression, schools, students
+from .routers import classes, gaps, huvudman, progression, schools, students
 
 app = FastAPI(title="Matematikuppföljning FK→Åk9 (demo)", version="0.1.0")
 
@@ -54,6 +54,7 @@ def seed(students: int = 2000, seed: int = 42) -> dict:
 
 app.include_router(progression.router)
 app.include_router(students.router)
+app.include_router(gaps.router)
 app.include_router(classes.router)
 app.include_router(schools.router)
 app.include_router(huvudman.router)

@@ -26,22 +26,35 @@ def latest_mastery(session: Session, student_id: str, max_grade: int | None = No
     return {nid: v[1] for nid, v in best.items()}
 
 
-def all_latest_mastery(session: Session) -> dict[str, dict[str, float]]:
-    """Latest measured mastery per (student, node) for the whole municipality."""
-    rows = session.exec(select(Assessment)).all()
+def all_latest_mastery(
+    session: Session, student_ids: set[str] | None = None
+) -> dict[str, dict[str, float]]:
+    """Latest measured mastery per (student, node), optionally for a subset.
+
+    Selects columns rather than whole rows: hydrating tens of thousands of ORM
+    objects here dominated the school and huvudman views.
+    """
+    stmt = select(
+        Assessment.student_id, Assessment.node_id,
+        Assessment.arskurs, Assessment.datum, Assessment.mastery,
+    )
+    if student_ids is not None:
+        stmt = stmt.where(Assessment.student_id.in_(student_ids))
     best: dict[str, dict[str, tuple]] = {}
-    for a in rows:
-        key = (a.arskurs, a.datum)
-        sd = best.setdefault(a.student_id, {})
-        if a.node_id not in sd or key > sd[a.node_id][0]:
-            sd[a.node_id] = (key, a.mastery)
+    for student_id, node_id, arskurs, datum, mastery in session.exec(stmt):
+        key = (arskurs, datum)
+        sd = best.setdefault(student_id, {})
+        if node_id not in sd or key > sd[node_id][0]:
+            sd[node_id] = (key, mastery)
     return {sid: {nid: v[1] for nid, v in nodes.items()} for sid, nodes in best.items()}
 
 
 def mastery_at_grade_for_node(session: Session, node_id: str) -> list[tuple[str, int, float]]:
     """All assessments of a node as (student_id, arskurs, mastery)."""
-    rows = session.exec(select(Assessment).where(Assessment.node_id == node_id)).all()
-    return [(a.student_id, a.arskurs, a.mastery) for a in rows]
+    stmt = select(Assessment.student_id, Assessment.arskurs, Assessment.mastery).where(
+        Assessment.node_id == node_id
+    )
+    return list(session.exec(stmt))
 
 
 def node_statuses(mastery: dict[str, float]) -> dict[str, str]:

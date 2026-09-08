@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Bar,
@@ -12,12 +13,15 @@ import {
 } from "recharts";
 import { api } from "../api/client";
 import { useFetch } from "../useFetch";
+import GapItem from "../components/LoopGap";
+import { LoopFunnel, LoopStatBand, LoopTerminChart } from "../components/LoopStats";
 import { ErrorBox, Loading, Section } from "../components/Section";
 import { gradeLabel } from "../ui";
 
 export default function SchoolView() {
   const { id } = useParams();
-  const { data, loading, error } = useFetch(() => api.school(id!), [id]);
+  const [version, setVersion] = useState(0);
+  const { data, loading, error } = useFetch(() => api.school(id!), [id, version]);
 
   if (loading) return <Loading />;
   if (error || !data) return <ErrorBox error={error ?? "okänt fel"} />;
@@ -48,6 +52,26 @@ export default function SchoolView() {
         likvärdighetsanalys) · F-andel åk 9:{" "}
         <span className="font-semibold text-ink">{Math.round(data.f_rate_ak9 * 100)}%</span>
       </p>
+
+      <div className="mb-5">
+        <LoopStatBand loop={data.loop} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Section
+          title="Luckflöde"
+          subtitle="Från upptäckt till stängd. Tappet mellan stegen är där loopen brister."
+        >
+          <LoopFunnel loop={data.loop} />
+        </Section>
+
+        <Section
+          title="Stängda inom en termin"
+          subtitle="Per upptäcktstermin – sluts loopen tätare över tid, eller glider den?"
+        >
+          <LoopTerminChart points={data.loop_by_termin} />
+        </Section>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Section
@@ -94,6 +118,24 @@ export default function SchoolView() {
           </div>
         </Section>
       </div>
+
+      {data.att_folja_upp.length > 0 && (
+        <Section
+          title="Luckor som står still"
+          subtitle="Försenade ommätningar och luckor utan påbörjad insats – det rektor kan göra något åt idag."
+        >
+          <ul className="space-y-3">
+            {data.att_folja_upp.map((g) => (
+              <GapItem
+                key={g.id}
+                gap={g}
+                showStudent
+                onUpdated={() => setVersion((v) => v + 1)}
+              />
+            ))}
+          </ul>
+        </Section>
+      )}
 
       <Section title="Klasser som driver risk" subtitle="Sorterat på andel i förhöjd risk. Klicka för klassvy.">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

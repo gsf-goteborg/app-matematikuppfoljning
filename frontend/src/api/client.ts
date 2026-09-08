@@ -18,9 +18,16 @@ async function get<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function post<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}/api${path}`, { method: "POST" });
-  if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${BASE_URL}/api${path}`, {
+    method: "POST",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `API ${path} -> ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
@@ -72,6 +79,7 @@ export interface StudentCard {
   suggested_focus: string[];
   provbetyg: string | null;
   slutbetyg: string | null;
+  gaps: GapCard[];
 }
 export interface StudentListItem {
   id: string;
@@ -135,6 +143,8 @@ export interface FocusGroup {
   is_gate: boolean;
   student_ids: string[];
   rationale: string;
+  n_med_insats: number;
+  n_utan_insats: number;
 }
 export interface ClassFocus {
   klass_id: number;
@@ -142,6 +152,8 @@ export interface ClassFocus {
   arskurs: number;
   gates: GateStatus[];
   focus_groups: FocusGroup[];
+  loop: LoopSummary;
+  att_folja_upp: GapCard[];
 }
 
 export interface SchoolGateSummary {
@@ -151,6 +163,11 @@ export interface SchoolGateSummary {
   gate_shares: Record<string, number>;
   f_rate_ak9: number;
   n_students: number;
+  andel_stangda_inom_en_termin: number;
+  upptackta_per_100_elever: number;
+  andel_med_insats: number;
+  n_insats_saknas: number;
+  n_luckor: number;
 }
 export interface GateThroughput {
   node_id: string;
@@ -177,6 +194,9 @@ export interface KommunKpi {
   share_elevated: number;
   f_rate_ak9: number;
   schools_with_gate_gap: number;
+  andel_stangda_inom_en_termin: number;
+  n_insats_saknas: number;
+  n_ommatning_forsenad: number;
 }
 export interface HuvudmanOverview {
   huvudman_namn: string;
@@ -186,6 +206,8 @@ export interface HuvudmanOverview {
   alerts: Alert[];
   equity_by_intag: EquityPoint[];
   equity_by_ses: EquityPoint[];
+  loop: LoopSummary;
+  loop_by_termin: LoopTerminPoint[];
 }
 export interface CohortTrendPoint {
   arskurs: number;
@@ -207,16 +229,353 @@ export interface SchoolDetail {
     n: number;
     share_high_risk: number;
   }[];
+  loop: LoopSummary;
+  loop_by_termin: LoopTerminPoint[];
+  att_folja_upp: GapCard[];
 }
+
+
+// ---------------------------------------------------------------------------
+// The closed loop
+// ---------------------------------------------------------------------------
+
+export type GapStatus =
+  | "stangd"
+  | "kvarstar"
+  | "pagaende"
+  | "ommatning_forsenad"
+  | "insats_saknas"
+  | "upptackt";
+
+export interface GapCard {
+  id: number;
+  student_id: string;
+  node_id: string;
+  label_sv: string;
+  is_gate: boolean;
+  school_id: number;
+  school_namn: string;
+  klass_id: number;
+  klass_beteckning: string;
+  upptackt_datum: string;
+  upptackt_termin: string;
+  upptackt_arskurs: number;
+  upptackt_mastery: number;
+  insats_startad: string | null;
+  insats_ansvarig_namn: string | null;
+  insatstyp: string | null;
+  planerad_ommatning: string | null;
+  insats_frist: string;
+  ommatt_datum: string | null;
+  ommatt_mastery: number | null;
+  utfall: string;
+  stangd_datum: string | null;
+  status: GapStatus;
+  status_label: string;
+  dagar_oppen: number | null;
+  stangd_inom_en_termin: boolean;
+}
+
+export interface LoopSummary {
+  n_elever: number;
+  n_luckor: number;
+  n_bedomningsbara: number;
+  n_stangda_inom_en_termin: number;
+  andel_stangda_inom_en_termin: number;
+  n_med_insats: number;
+  andel_med_insats: number;
+  andel_insats_i_tid: number;
+  n_ommatta: number;
+  n_stangda: number;
+  n_stangda_med_insats: number;
+  n_stangda_utan_insats: number;
+  n_kvarstar: number;
+  n_oppna: number;
+  n_insats_saknas: number;
+  n_ommatning_forsenad: number;
+  median_dagar_till_stangning: number | null;
+  upptackta_per_100_elever: number;
+}
+
+export interface LoopTerminPoint {
+  termin: string;
+  andel_stangda_inom_en_termin: number;
+  n_luckor: number;
+}
+
+// Mirrors backend/app/loop.py. Duplicated only so the *published static demo*
+// can respond to a registered insats -- the backend stays the source of truth
+// whenever there is one.
+export const DEMO_TODAY = "2025-12-15";
+export const MASTERY_THRESHOLD = 0.5;
+export const INSATSTYPER = [
+  "Intensivperiod",
+  "Liten grupp",
+  "Anpassad undervisning",
+  "Specialpedagog",
+];
+export const STATUS_LABELS: Record<GapStatus, string> = {
+  stangd: "Stängd",
+  kvarstar: "Kvarstår efter ommätning",
+  pagaende: "Insats pågår",
+  ommatning_forsenad: "Ommätning försenad",
+  insats_saknas: "Ingen insats påbörjad",
+  upptackt: "Nyupptäckt",
+};
+
+const iso = (y: number, m: number, d: number) =>
+  `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+const yearOf = (d: string) => Number(d.slice(0, 4));
+const monthOf = (d: string) => Number(d.slice(5, 7));
+
+export function addDays(d: string, n: number): string {
+  const t = new Date(`${d}T00:00:00Z`);
+  t.setUTCDate(t.getUTCDate() + n);
+  return t.toISOString().slice(0, 10);
+}
+
+export function daysBetween(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
+  return Math.round(ms / 86400000);
+}
+
+// HT runs Aug-Dec, VT Jan-Jul (the summer counts into the spring term).
+const terminSlut = (d: string) =>
+  monthOf(d) >= 8 ? iso(yearOf(d), 12, 31) : iso(yearOf(d), 7, 31);
+
+export function slutPaNastaTermin(d: string): string {
+  const slut = terminSlut(d);
+  return monthOf(slut) >= 8 ? iso(yearOf(slut) + 1, 7, 31) : iso(yearOf(slut), 12, 31);
+}
+
+export function insatsFrist(upptackt: string): string {
+  const y = yearOf(upptackt);
+  const hostTermin = monthOf(upptackt) >= 8;
+  const slut = hostTermin ? iso(y, 12, 20) : iso(y, 6, 10);
+  const nastaStart = hostTermin ? iso(y + 1, 1, 10) : iso(y, 8, 20);
+  const frist = addDays(upptackt, 28);
+  return frist <= slut ? frist : addDays(nastaStart, 28);
+}
+
+export function gapStatus(g: GapCard): GapStatus {
+  if (g.utfall === "stangd") return "stangd";
+  if (g.utfall === "kvarstar") return "kvarstar";
+  if (g.insats_startad) {
+    const planerad = g.planerad_ommatning ?? addDays(g.insats_startad, 70);
+    return planerad < DEMO_TODAY ? "ommatning_forsenad" : "pagaende";
+  }
+  return insatsFrist(g.upptackt_datum) < DEMO_TODAY ? "insats_saknas" : "upptackt";
+}
+
+function withDerived(g: GapCard): GapCard {
+  const status = gapStatus(g);
+  return {
+    ...g,
+    status,
+    status_label: STATUS_LABELS[status],
+    dagar_oppen: daysBetween(g.upptackt_datum, g.stangd_datum ?? DEMO_TODAY),
+    stangd_inom_en_termin:
+      g.stangd_datum !== null && g.stangd_datum <= slutPaNastaTermin(g.upptackt_datum),
+  };
+}
+
+const ACTION_ORDER: Record<GapStatus, number> = {
+  ommatning_forsenad: 0,
+  insats_saknas: 1,
+  kvarstar: 2,
+  pagaende: 3,
+  upptackt: 4,
+  stangd: 5,
+};
+
+export function sortGaps(gaps: GapCard[]): GapCard[] {
+  return [...gaps].sort(
+    (a, b) =>
+      ACTION_ORDER[a.status] - ACTION_ORDER[b.status] ||
+      Number(b.is_gate) - Number(a.is_gate) ||
+      a.upptackt_datum.localeCompare(b.upptackt_datum)
+  );
+}
+
+export function summariseGaps(gaps: GapCard[], nElever: number): LoopSummary {
+  const andel = (t: number, n: number) => (n ? Math.round((t / n) * 1000) / 1000 : 0);
+  const stangda = gaps.filter((g) => g.utfall === "stangd");
+  const medInsats = gaps.filter((g) => g.insats_startad);
+  const bedomningsbara = gaps.filter(
+    (g) => slutPaNastaTermin(g.upptackt_datum) <= DEMO_TODAY
+  );
+  const iTid = bedomningsbara.filter((g) => g.stangd_inom_en_termin);
+  const hunnitStarta = gaps.filter((g) => insatsFrist(g.upptackt_datum) <= DEMO_TODAY);
+  const dagar = stangda
+    .map((g) => (g.stangd_datum ? daysBetween(g.upptackt_datum, g.stangd_datum) : null))
+    .filter((d): d is number => d !== null)
+    .sort((a, b) => a - b);
+  return {
+    n_elever: nElever,
+    n_luckor: gaps.length,
+    n_bedomningsbara: bedomningsbara.length,
+    n_stangda_inom_en_termin: iTid.length,
+    andel_stangda_inom_en_termin: andel(iTid.length, bedomningsbara.length),
+    n_med_insats: medInsats.length,
+    andel_med_insats: andel(medInsats.length, gaps.length),
+    andel_insats_i_tid: andel(
+      hunnitStarta.filter(
+        (g) => g.insats_startad && g.insats_startad <= insatsFrist(g.upptackt_datum)
+      ).length,
+      hunnitStarta.length
+    ),
+    n_ommatta: gaps.filter((g) => g.ommatt_datum).length,
+    n_stangda: stangda.length,
+    n_stangda_med_insats: stangda.filter((g) => g.insats_startad).length,
+    n_stangda_utan_insats: stangda.filter((g) => !g.insats_startad).length,
+    n_kvarstar: gaps.filter((g) => g.utfall === "kvarstar").length,
+    n_oppna: gaps.filter((g) => g.utfall === "oppen" || g.utfall === "pagaende").length,
+    n_insats_saknas: gaps.filter((g) => g.status === "insats_saknas").length,
+    n_ommatning_forsenad: gaps.filter((g) => g.status === "ommatning_forsenad").length,
+    median_dagar_till_stangning: dagar.length ? dagar[Math.floor(dagar.length / 2)] : null,
+    upptackta_per_100_elever: nElever
+      ? Math.round(((100 * gaps.length) / nElever) * 10) / 10
+      : 0,
+  };
+}
+
+// -- Static mode: registrations live in the browser ------------------------
+// The published demo is a pre-baked snapshot with no server to write to, so
+// what a user registers is stored locally and layered over the snapshot. The
+// numbers still move, and nothing is silently lost.
+
+const OVERLAY_KEY = "matematikuppfoljning.loop.v1";
+type GapPatch = Partial<GapCard>;
+
+function readOverlay(): Record<string, GapPatch> {
+  if (!STATIC) return {};
+  try {
+    return JSON.parse(localStorage.getItem(OVERLAY_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeOverlay(next: Record<string, GapPatch>): void {
+  try {
+    localStorage.setItem(OVERLAY_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode: the registration simply does not persist */
+  }
+}
+
+export function loopOverlayCount(): number {
+  return Object.keys(readOverlay()).length;
+}
+
+/** Nothing registered locally means the snapshot's own numbers are still right,
+ *  so the full gap register (a couple of megabytes) is never downloaded. */
+function hasOverlay(): boolean {
+  return STATIC && loopOverlayCount() > 0;
+}
+
+export function clearLoopOverlay(): void {
+  writeOverlay({});
+  allGapsCache = null;
+}
+
+function applyOverlay(gaps: GapCard[]): GapCard[] {
+  if (!STATIC) return gaps;
+  const overlay = readOverlay();
+  if (!Object.keys(overlay).length) return gaps;
+  return gaps.map((g) => (overlay[g.id] ? withDerived({ ...g, ...overlay[g.id] }) : g));
+}
+
+function patchLocally(gapId: number, patch: GapPatch): void {
+  const overlay = readOverlay();
+  overlay[gapId] = { ...(overlay[gapId] ?? {}), ...patch };
+  writeOverlay(overlay);
+  allGapsCache = null;
+}
+
+let allGapsCache: Promise<GapCard[]> | null = null;
+
+function allGaps(): Promise<GapCard[]> {
+  if (!allGapsCache) allGapsCache = get<GapCard[]>("/gaps").then(applyOverlay);
+  return allGapsCache;
+}
+
+export const ACTIONABLE: GapStatus[] = [
+  "ommatning_forsenad",
+  "insats_saknas",
+  "pagaende",
+  "kvarstar",
+];
 
 export const api = {
   demoScenarios: () => get<Record<string, string>>("/demo/scenarios"),
   progressionGraph: () => get<ProgressionGraph>("/progression/graph"),
-  huvudmanOverview: () => get<HuvudmanOverview>("/huvudman/overview"),
-  school: (id: number | string) => get<SchoolDetail>(`/schools/${id}`),
+  huvudmanOverview: async () => {
+    const data = await get<HuvudmanOverview>("/huvudman/overview");
+    if (!hasOverlay()) return data;
+    const gaps = await allGaps();
+    const loop = summariseGaps(gaps, data.kpi.n_students);
+    return {
+      ...data,
+      loop,
+      kpi: {
+        ...data.kpi,
+        andel_stangda_inom_en_termin: loop.andel_stangda_inom_en_termin,
+        n_insats_saknas: loop.n_insats_saknas,
+        n_ommatning_forsenad: loop.n_ommatning_forsenad,
+      },
+      schools: data.schools.map((sc) => {
+        const sg = gaps.filter((g) => g.school_id === sc.school_id);
+        const sl = summariseGaps(sg, sc.n_students);
+        return {
+          ...sc,
+          andel_stangda_inom_en_termin: sl.andel_stangda_inom_en_termin,
+          upptackta_per_100_elever: sl.upptackta_per_100_elever,
+          andel_med_insats: sl.andel_med_insats,
+          n_insats_saknas: sl.n_insats_saknas,
+          n_luckor: sl.n_luckor,
+        };
+      }),
+    };
+  },
+  school: async (id: number | string) => {
+    const detail = await get<SchoolDetail>(`/schools/${id}`);
+    if (!hasOverlay()) return detail;
+    const gaps = (await allGaps()).filter((g) => g.school_id === Number(id));
+    return {
+      ...detail,
+      loop: summariseGaps(gaps, detail.n_students),
+      att_folja_upp: sortGaps(
+        gaps.filter(
+          (g) => g.status === "ommatning_forsenad" || g.status === "insats_saknas"
+        )
+      ).slice(0, 15),
+    };
+  },
   classHeatmap: (id: number | string) => get<ClassHeatmap>(`/classes/${id}/heatmap`),
-  classFocus: (id: number | string) => get<ClassFocus>(`/classes/${id}/focus`),
-  student: (id: string) => get<StudentCard>(`/students/${id}`),
+  classFocus: async (id: number | string) => {
+    const focus = await get<ClassFocus>(`/classes/${id}/focus`);
+    if (!hasOverlay()) return focus;
+    const gaps = (await allGaps()).filter((g) => g.klass_id === Number(id));
+    const medInsats = new Set(
+      gaps.filter((g) => g.insats_startad).map((g) => `${g.node_id}|${g.student_id}`)
+    );
+    return {
+      ...focus,
+      loop: summariseGaps(gaps, focus.loop.n_elever),
+      focus_groups: focus.focus_groups.map((fg) => {
+        const n = fg.student_ids.filter((sid) =>
+          medInsats.has(`${fg.node_id}|${sid}`)
+        ).length;
+        return { ...fg, n_med_insats: n, n_utan_insats: fg.student_ids.length - n };
+      }),
+      att_folja_upp: sortGaps(gaps.filter((g) => ACTIONABLE.includes(g.status))).slice(0, 12),
+    };
+  },
+  student: async (id: string) => {
+    const card = await get<StudentCard>(`/students/${id}`);
+    return { ...card, gaps: sortGaps(applyOverlay(card.gaps)) };
+  },
   comparison: (id: string) => get<ComparisonView>(`/students/${id}/comparison`),
   students: async (params: { risk_level?: number; school_id?: number; arskurs?: number } = {}) => {
     if (STATIC) {
@@ -237,10 +596,70 @@ export const api = {
     const qs = q.toString();
     return get<StudentListItem[]>(`/students${qs ? `?${qs}` : ""}`);
   },
+  gaps: async (
+    params: { student_id?: string; klass_id?: number; school_id?: number } = {}
+  ) => {
+    if (STATIC) {
+      let out = await allGaps();
+      if (params.student_id) out = out.filter((g) => g.student_id === params.student_id);
+      if (params.klass_id !== undefined) out = out.filter((g) => g.klass_id === params.klass_id);
+      if (params.school_id !== undefined)
+        out = out.filter((g) => g.school_id === params.school_id);
+      return sortGaps(out);
+    }
+    const q = new URLSearchParams();
+    if (params.student_id) q.set("student_id", params.student_id);
+    if (params.klass_id !== undefined) q.set("klass_id", String(params.klass_id));
+    if (params.school_id !== undefined) q.set("school_id", String(params.school_id));
+    const qs = q.toString();
+    return get<GapCard[]>(`/gaps${qs ? `?${qs}` : ""}`);
+  },
+
+  /** Field 1 of the loop: who started what, and when -- never a measurement. */
+  registerInsats: async (
+    gap: GapCard,
+    body: { ansvarig_namn: string; insatstyp: string; datum?: string }
+  ): Promise<GapCard> => {
+    if (!STATIC) return post<GapCard>(`/gaps/${gap.id}/insats`, body);
+    if (gap.utfall === "stangd") throw new Error("Luckan \u00e4r redan st\u00e4ngd");
+    const startad = body.datum ?? DEMO_TODAY;
+    if (startad < gap.upptackt_datum)
+      throw new Error("Insatsen kan inte ha p\u00e5b\u00f6rjats innan luckan uppt\u00e4cktes");
+    const patch: GapPatch = {
+      insats_startad: startad,
+      insats_ansvarig_namn: body.ansvarig_namn.trim(),
+      insatstyp: body.insatstyp.trim(),
+      planerad_ommatning: addDays(startad, 70),
+      utfall: gap.utfall === "oppen" ? "pagaende" : gap.utfall,
+    };
+    patchLocally(gap.id, patch);
+    return withDerived({ ...gap, ...patch });
+  },
+
+  /** Fields 2 and 3: re-measured on this date, showing this. The outcome follows. */
+  registerOmmatning: async (
+    gap: GapCard,
+    body: { mastery: number; datum?: string }
+  ): Promise<GapCard> => {
+    if (!STATIC) return post<GapCard>(`/gaps/${gap.id}/ommatning`, body);
+    const datum = body.datum ?? DEMO_TODAY;
+    if (datum < gap.upptackt_datum)
+      throw new Error("Omm\u00e4tningen kan inte ligga f\u00f6re uppt\u00e4ckten");
+    const stangd = body.mastery >= MASTERY_THRESHOLD;
+    const patch: GapPatch = {
+      ommatt_datum: datum,
+      ommatt_mastery: Math.round(body.mastery * 1000) / 1000,
+      utfall: stangd ? "stangd" : "kvarstar",
+      stangd_datum: stangd ? datum : null,
+    };
+    patchLocally(gap.id, patch);
+    return withDerived({ ...gap, ...patch });
+  },
+
   reseed: (students = 2000, seed = 42) =>
     post<{ status: string; scenarios: Record<string, string> }>(
       `/seed?students=${students}&seed=${seed}`
     ),
 };
 
-export { BASE_URL };
+export { BASE_URL, STATIC };

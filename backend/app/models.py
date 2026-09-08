@@ -110,3 +110,46 @@ class DemoMeta(SQLModel, table=True):
     """Small key/value store for demo plumbing (e.g. scenario student ids)."""
     key: str = Field(primary_key=True)
     value: str
+
+
+# ---------------------------------------------------------------------------
+# The closed loop: a gap is an entity with a lifecycle, not a computed status
+# ---------------------------------------------------------------------------
+
+
+class Kunskapslucka(SQLModel, table=True):
+    """One gap episode for one pupil at one node -- the unit the loop closes on.
+
+    Detection is derived from measurements (never entered by hand). The three
+    fields that close the loop -- ``insats_startad`` (+ ansvarig), ``ommatt_datum``
+    and ``utfall`` -- are the only reporting the system asks a teacher for.
+
+    GUARD (mirrors the SES guard in risk.py): a registered intervention must
+    NEVER lower a pupil's risk. Only a re-measurement can. See loop.py.
+    """
+    id: int | None = Field(default=None, primary_key=True)
+    student_id: str = Field(foreign_key="student.id", index=True)
+    node_id: str = Field(foreign_key="skillnode.id", index=True)
+    # Denormalised for aggregation without joins (school comparison is the point).
+    school_id: int = Field(foreign_key="school.id", index=True)
+    klass_id: int = Field(foreign_key="klass.id", index=True)
+
+    # -- upptäckt (derived from an Assessment) --
+    upptackt_datum: date = Field(index=True)
+    upptackt_arskurs: int
+    upptackt_mastery: float
+
+    # -- insats påbörjad (field 1: datum + ansvarig) --
+    insats_startad: date | None = Field(default=None)
+    insats_ansvarig_id: int | None = Field(default=None, foreign_key="teacher.id")
+    insats_ansvarig_namn: str | None = Field(default=None)
+    insatstyp: str | None = Field(default=None)
+    planerad_ommatning: date | None = Field(default=None)
+
+    # -- ommätt (field 2: datum) --
+    ommatt_datum: date | None = Field(default=None)
+    ommatt_mastery: float | None = Field(default=None)
+
+    # -- utfall (field 3: nod bemästrad eller ej) --
+    utfall: str = Field(default="oppen", index=True)  # oppen|pagaende|stangd|kvarstar
+    stangd_datum: date | None = Field(default=None)

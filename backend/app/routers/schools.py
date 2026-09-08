@@ -8,9 +8,10 @@ from sqlmodel import Session, select
 
 from .. import progression as prog
 from ..db import get_session
-from ..models import Ak9Outcome, Klass, RiskScore, School, Student
-from ..schemas import CohortTrendPoint, GateThroughput, SchoolDetail
+from ..models import Ak9Outcome, Klass, Kunskapslucka, RiskScore, School, Student
+from ..schemas import CohortTrendPoint, GateThroughput, LoopTerminPoint, SchoolDetail
 from . import _helpers as H
+from . import gaps as G
 
 router = APIRouter(prefix="/api/schools", tags=["schools"])
 
@@ -53,7 +54,7 @@ def school_detail(school_id: int, session: Session = Depends(get_session)) -> Sc
         ))
 
     # Gate status per grade (share mastered) using all assessments in this school.
-    latest_mastery = H.all_latest_mastery(session)
+    latest_mastery = H.all_latest_mastery(session, student_ids)
     gate_status_by_grade: list[GateThroughput] = []
     grade_for_gate = {"N6": [2, 3], "N12": [5, 6], "N17": [7, 9]}
     for gid, grades in grade_for_gate.items():
@@ -87,9 +88,19 @@ def school_detail(school_id: int, session: Session = Depends(get_session)) -> Sc
         })
     class_risk.sort(key=lambda c: -c["share_high_risk"])
 
+    # The loop for this school: how many gaps close, and what is stuck.
+    gap_rows = list(session.exec(
+        select(Kunskapslucka).where(Kunskapslucka.school_id == school_id)
+    ).all())
+    att_folja_upp = [c for c in sorted(G.cards(session, gap_rows), key=G.sort_key)
+                     if c.status in ("ommatning_forsenad", "insats_saknas")]
+
     return SchoolDetail(
         school_id=school.id, namn=school.namn, intag_index=school.intag_index,
         n_students=len(students), cohort_trend=cohort_trend,
         gate_status_by_grade=gate_status_by_grade, f_rate_ak9=f_rate,
         classes_driving_risk=class_risk[:8],
+        loop=G.summary_for(gap_rows, len(students)),
+        loop_by_termin=[LoopTerminPoint(**p) for p in G.by_termin(gap_rows)],
+        att_folja_upp=att_folja_upp[:15],
     )

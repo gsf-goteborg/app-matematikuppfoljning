@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, STATIC } from "../api/client";
 import { useFetch } from "../useFetch";
+import GapItem, { StatusPill } from "../components/LoopGap";
 import ProgressionGraph from "../components/ProgressionGraph";
 import RiskTrajectory from "../components/RiskTrajectory";
 import { ErrorBox, Loading, Section } from "../components/Section";
@@ -8,15 +10,18 @@ import { BETYG_COLORS, RISK_COLORS, RISK_LABELS, gradeLabel } from "../ui";
 
 export default function StudentView() {
   const { id } = useParams();
-  const card = useFetch(() => api.student(id!), [id]);
+  // Bumped after a registration so the card -- and the recomputed risk -- reload.
+  const [version, setVersion] = useState(0);
+  const card = useFetch(() => api.student(id!), [id, version]);
   const graph = useFetch(() => api.progressionGraph(), []);
 
   if (card.loading || graph.loading) return <Loading />;
   if (card.error || !card.data) return <ErrorBox error={card.error ?? "okänt fel"} />;
   const s = card.data;
 
-  const gaps = s.node_mastery.filter((n) => n.status === "lucka");
-  const nextGap = gaps[0];
+  const openGaps = s.gaps.filter((g) => g.utfall !== "stangd");
+  const closedGaps = s.gaps.filter((g) => g.utfall === "stangd");
+  const nextGap = openGaps[0];
 
   return (
     <div>
@@ -63,8 +68,8 @@ export default function StudentView() {
               <div className="text-xl font-display font-semibold text-ink mt-1">
                 {nextGap.node_id} {nextGap.label_sv}
               </div>
-              <div className="text-sm text-ink-soft mt-0.5 tnum">
-                Bemästrad till {Math.round((nextGap.mastery ?? 0) * 100)}%
+              <div className="mt-1.5">
+                <StatusPill gap={nextGap} />
               </div>
             </>
           ) : (
@@ -89,15 +94,53 @@ export default function StudentView() {
         </div>
       </div>
 
-      <Section title="Föreslagen åtgärd" subtitle="Varje röd siffra leder till ett nästa steg.">
-        {s.suggested_focus.length === 0 ? (
-          <p className="text-sm text-slate-500">Inga åtgärder behövs just nu.</p>
+      <Section
+        title="Åtgärd och uppföljning"
+        subtitle="Varje lucka följs från upptäckt till ommätt utfall. Utan de stegen är en föreslagen åtgärd bara ett förslag."
+      >
+        {s.suggested_focus.length > 0 && (
+          <div className="mb-4 p-3 rounded-md bg-gbg-blue-light/10 border-l-4 border-gbg-blue">
+            <div className="text-2xs uppercase tracking-wider text-ink-faint mb-1">
+              Föreslaget nästa steg
+            </div>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-ink">
+              {s.suggested_focus.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {openGaps.length === 0 ? (
+          <p className="text-sm text-ink-soft">
+            Inga öppna luckor. {closedGaps.length > 0 && "Historiken nedan visar vad som stängdes."}
+          </p>
         ) : (
-          <ul className="list-disc pl-5 space-y-1 text-sm">
-            {s.suggested_focus.map((f, i) => (
-              <li key={i}>{f}</li>
+          <ul className="space-y-3">
+            {openGaps.map((g) => (
+              <GapItem key={g.id} gap={g} onUpdated={() => setVersion((v) => v + 1)} />
             ))}
           </ul>
+        )}
+
+        {closedGaps.length > 0 && (
+          <details className="mt-4 group">
+            <summary className="cursor-pointer text-sm font-medium text-ink-soft hover:text-gbg-blue transition-colors">
+              Stängda luckor ({closedGaps.length})
+            </summary>
+            <ul className="space-y-3 mt-3">
+              {closedGaps.map((g) => (
+                <GapItem key={g.id} gap={g} />
+              ))}
+            </ul>
+          </details>
+        )}
+
+        {STATIC && (
+          <p className="text-2xs text-ink-faint mt-4 border-t border-paper-line pt-3">
+            Publicerad demo utan server: registreringar sparas i den här webbläsaren och läggs
+            ovanpå datan. Risktrajektorian räknas om från ommätningen när appen kör mot backend.
+          </p>
         )}
       </Section>
 

@@ -49,8 +49,10 @@ def main() -> None:
     grab("/api/demo/scenarios", "demo/scenarios.json")
     grab("/api/progression/graph", "progression/graph.json")
     grab("/api/huvudman/overview", "huvudman/overview.json")
-    # Full list (client filters this in static mode).
+    # Full lists (the client filters these in static mode -- and recomputes the
+    # loop KPIs locally when someone registers an insats in the published demo).
     grab("/api/students?limit=2000", "students.json")
+    grab("/api/gaps?limit=5000", "gaps.json")
 
     with Session(engine) as session:
         schools = session.exec(select(School)).all()
