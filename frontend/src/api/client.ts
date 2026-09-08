@@ -166,7 +166,7 @@ export interface SchoolGateSummary {
   andel_stangda_inom_en_termin: number;
   upptackta_per_100_elever: number;
   andel_med_insats: number;
-  n_insats_saknas: number;
+  n_utan_insats: number;
   n_luckor: number;
 }
 export interface GateThroughput {
@@ -195,8 +195,8 @@ export interface KommunKpi {
   f_rate_ak9: number;
   schools_with_gate_gap: number;
   andel_stangda_inom_en_termin: number;
-  n_insats_saknas: number;
-  n_ommatning_forsenad: number;
+  n_elever_bedomningsbara: number;
+  n_utan_insats: number;
 }
 export interface HuvudmanOverview {
   huvudman_namn: string;
@@ -239,13 +239,9 @@ export interface SchoolDetail {
 // The closed loop
 // ---------------------------------------------------------------------------
 
-export type GapStatus =
-  | "stangd"
-  | "kvarstar"
-  | "pagaende"
-  | "ommatning_forsenad"
-  | "insats_saknas"
-  | "upptackt";
+// Four states, because four is what somebody can act on. Whether a running
+// intervention is overdue is a flag on top, not a fifth state.
+export type GapStatus = "vantar" | "pagaende" | "kvarstar" | "stangd";
 
 export interface GapCard {
   id: number;
@@ -263,35 +259,35 @@ export interface GapCard {
   upptackt_mastery: number;
   insats_startad: string | null;
   insats_ansvarig_namn: string | null;
-  insatstyp: string | null;
   planerad_ommatning: string | null;
-  insats_frist: string;
   ommatt_datum: string | null;
   ommatt_mastery: number | null;
   utfall: string;
   stangd_datum: string | null;
   status: GapStatus;
   status_label: string;
+  ommatning_forsenad: boolean;
   dagar_oppen: number | null;
   stangd_inom_en_termin: boolean;
 }
 
 export interface LoopSummary {
   n_elever: number;
+  n_elever_med_lucka: number;
+  n_elever_bedomningsbara: number;
   n_luckor: number;
   n_bedomningsbara: number;
   n_stangda_inom_en_termin: number;
   andel_stangda_inom_en_termin: number;
   n_med_insats: number;
   andel_med_insats: number;
-  andel_insats_i_tid: number;
   n_ommatta: number;
   n_stangda: number;
   n_stangda_med_insats: number;
   n_stangda_utan_insats: number;
   n_kvarstar: number;
   n_oppna: number;
-  n_insats_saknas: number;
+  n_utan_insats: number;
   n_ommatning_forsenad: number;
   median_dagar_till_stangning: number | null;
   upptackta_per_100_elever: number;
@@ -308,19 +304,11 @@ export interface LoopTerminPoint {
 // whenever there is one.
 export const DEMO_TODAY = "2025-12-15";
 export const MASTERY_THRESHOLD = 0.5;
-export const INSATSTYPER = [
-  "Intensivperiod",
-  "Liten grupp",
-  "Anpassad undervisning",
-  "Specialpedagog",
-];
 export const STATUS_LABELS: Record<GapStatus, string> = {
-  stangd: "Stängd",
-  kvarstar: "Kvarstår efter ommätning",
+  vantar: "Väntar på insats",
   pagaende: "Insats pågår",
-  ommatning_forsenad: "Ommätning försenad",
-  insats_saknas: "Ingen insats påbörjad",
-  upptackt: "Nyupptäckt",
+  kvarstar: "Kvarstår efter ommätning",
+  stangd: "Stängd",
 };
 
 const iso = (y: number, m: number, d: number) =>
@@ -348,23 +336,16 @@ export function slutPaNastaTermin(d: string): string {
   return monthOf(slut) >= 8 ? iso(yearOf(slut) + 1, 7, 31) : iso(yearOf(slut), 12, 31);
 }
 
-export function insatsFrist(upptackt: string): string {
-  const y = yearOf(upptackt);
-  const hostTermin = monthOf(upptackt) >= 8;
-  const slut = hostTermin ? iso(y, 12, 20) : iso(y, 6, 10);
-  const nastaStart = hostTermin ? iso(y + 1, 1, 10) : iso(y, 8, 20);
-  const frist = addDays(upptackt, 28);
-  return frist <= slut ? frist : addDays(nastaStart, 28);
-}
-
 export function gapStatus(g: GapCard): GapStatus {
   if (g.utfall === "stangd") return "stangd";
   if (g.utfall === "kvarstar") return "kvarstar";
-  if (g.insats_startad) {
-    const planerad = g.planerad_ommatning ?? addDays(g.insats_startad, 70);
-    return planerad < DEMO_TODAY ? "ommatning_forsenad" : "pagaende";
-  }
-  return insatsFrist(g.upptackt_datum) < DEMO_TODAY ? "insats_saknas" : "upptackt";
+  return g.insats_startad ? "pagaende" : "vantar";
+}
+
+/** A running intervention whose planned follow-up has passed. A flag, not a state. */
+export function arForsenad(g: GapCard): boolean {
+  if (!g.insats_startad || g.ommatt_datum) return false;
+  return (g.planerad_ommatning ?? addDays(g.insats_startad, 70)) < DEMO_TODAY;
 }
 
 function withDerived(g: GapCard): GapCard {
@@ -373,6 +354,7 @@ function withDerived(g: GapCard): GapCard {
     ...g,
     status,
     status_label: STATUS_LABELS[status],
+    ommatning_forsenad: arForsenad(g),
     dagar_oppen: daysBetween(g.upptackt_datum, g.stangd_datum ?? DEMO_TODAY),
     stangd_inom_en_termin:
       g.stangd_datum !== null && g.stangd_datum <= slutPaNastaTermin(g.upptackt_datum),
@@ -380,18 +362,18 @@ function withDerived(g: GapCard): GapCard {
 }
 
 const ACTION_ORDER: Record<GapStatus, number> = {
-  ommatning_forsenad: 0,
-  insats_saknas: 1,
+  vantar: 1,
   kvarstar: 2,
   pagaende: 3,
-  upptackt: 4,
-  stangd: 5,
+  stangd: 4,
 };
+
+const rank = (g: GapCard) => (g.ommatning_forsenad ? 0 : ACTION_ORDER[g.status]);
 
 export function sortGaps(gaps: GapCard[]): GapCard[] {
   return [...gaps].sort(
     (a, b) =>
-      ACTION_ORDER[a.status] - ACTION_ORDER[b.status] ||
+      rank(a) - rank(b) ||
       Number(b.is_gate) - Number(a.is_gate) ||
       a.upptackt_datum.localeCompare(b.upptackt_datum)
   );
@@ -405,33 +387,30 @@ export function summariseGaps(gaps: GapCard[], nElever: number): LoopSummary {
     (g) => slutPaNastaTermin(g.upptackt_datum) <= DEMO_TODAY
   );
   const iTid = bedomningsbara.filter((g) => g.stangd_inom_en_termin);
-  const hunnitStarta = gaps.filter((g) => insatsFrist(g.upptackt_datum) <= DEMO_TODAY);
   const dagar = stangda
     .map((g) => (g.stangd_datum ? daysBetween(g.upptackt_datum, g.stangd_datum) : null))
     .filter((d): d is number => d !== null)
     .sort((a, b) => a - b);
   return {
     n_elever: nElever,
+    n_elever_med_lucka: new Set(gaps.map((g) => g.student_id)).size,
+    n_elever_bedomningsbara: new Set(bedomningsbara.map((g) => g.student_id)).size,
     n_luckor: gaps.length,
     n_bedomningsbara: bedomningsbara.length,
     n_stangda_inom_en_termin: iTid.length,
     andel_stangda_inom_en_termin: andel(iTid.length, bedomningsbara.length),
     n_med_insats: medInsats.length,
     andel_med_insats: andel(medInsats.length, gaps.length),
-    andel_insats_i_tid: andel(
-      hunnitStarta.filter(
-        (g) => g.insats_startad && g.insats_startad <= insatsFrist(g.upptackt_datum)
-      ).length,
-      hunnitStarta.length
-    ),
     n_ommatta: gaps.filter((g) => g.ommatt_datum).length,
     n_stangda: stangda.length,
     n_stangda_med_insats: stangda.filter((g) => g.insats_startad).length,
     n_stangda_utan_insats: stangda.filter((g) => !g.insats_startad).length,
     n_kvarstar: gaps.filter((g) => g.utfall === "kvarstar").length,
     n_oppna: gaps.filter((g) => g.utfall === "oppen" || g.utfall === "pagaende").length,
-    n_insats_saknas: gaps.filter((g) => g.status === "insats_saknas").length,
-    n_ommatning_forsenad: gaps.filter((g) => g.status === "ommatning_forsenad").length,
+    n_utan_insats: gaps.filter(
+      (g) => !g.insats_startad && (g.utfall === "oppen" || g.utfall === "pagaende")
+    ).length,
+    n_ommatning_forsenad: gaps.filter((g) => g.ommatning_forsenad).length,
     median_dagar_till_stangning: dagar.length ? dagar[Math.floor(dagar.length / 2)] : null,
     upptackta_per_100_elever: nElever
       ? Math.round(((100 * gaps.length) / nElever) * 10) / 10
@@ -500,12 +479,7 @@ function allGaps(): Promise<GapCard[]> {
   return allGapsCache;
 }
 
-export const ACTIONABLE: GapStatus[] = [
-  "ommatning_forsenad",
-  "insats_saknas",
-  "pagaende",
-  "kvarstar",
-];
+
 
 export const api = {
   demoScenarios: () => get<Record<string, string>>("/demo/scenarios"),
@@ -521,8 +495,8 @@ export const api = {
       kpi: {
         ...data.kpi,
         andel_stangda_inom_en_termin: loop.andel_stangda_inom_en_termin,
-        n_insats_saknas: loop.n_insats_saknas,
-        n_ommatning_forsenad: loop.n_ommatning_forsenad,
+        n_elever_bedomningsbara: loop.n_elever_bedomningsbara,
+        n_utan_insats: loop.n_utan_insats,
       },
       schools: data.schools.map((sc) => {
         const sg = gaps.filter((g) => g.school_id === sc.school_id);
@@ -532,7 +506,7 @@ export const api = {
           andel_stangda_inom_en_termin: sl.andel_stangda_inom_en_termin,
           upptackta_per_100_elever: sl.upptackta_per_100_elever,
           andel_med_insats: sl.andel_med_insats,
-          n_insats_saknas: sl.n_insats_saknas,
+          n_utan_insats: sl.n_utan_insats,
           n_luckor: sl.n_luckor,
         };
       }),
@@ -546,9 +520,7 @@ export const api = {
       ...detail,
       loop: summariseGaps(gaps, detail.n_students),
       att_folja_upp: sortGaps(
-        gaps.filter(
-          (g) => g.status === "ommatning_forsenad" || g.status === "insats_saknas"
-        )
+        gaps.filter((g) => g.ommatning_forsenad || g.status === "vantar")
       ).slice(0, 15),
     };
   },
@@ -569,7 +541,7 @@ export const api = {
         ).length;
         return { ...fg, n_med_insats: n, n_utan_insats: fg.student_ids.length - n };
       }),
-      att_folja_upp: sortGaps(gaps.filter((g) => ACTIONABLE.includes(g.status))).slice(0, 12),
+      att_folja_upp: sortGaps(gaps.filter((g) => g.status !== "stangd")).slice(0, 12),
     };
   },
   student: async (id: string) => {
@@ -618,7 +590,7 @@ export const api = {
   /** Field 1 of the loop: who started what, and when -- never a measurement. */
   registerInsats: async (
     gap: GapCard,
-    body: { ansvarig_namn: string; insatstyp: string; datum?: string }
+    body: { ansvarig_namn: string; datum?: string }
   ): Promise<GapCard> => {
     if (!STATIC) return post<GapCard>(`/gaps/${gap.id}/insats`, body);
     if (gap.utfall === "stangd") throw new Error("Luckan \u00e4r redan st\u00e4ngd");
@@ -628,7 +600,6 @@ export const api = {
     const patch: GapPatch = {
       insats_startad: startad,
       insats_ansvarig_namn: body.ansvarig_namn.trim(),
-      insatstyp: body.insatstyp.trim(),
       planerad_ommatning: addDays(startad, 70),
       utfall: gap.utfall === "oppen" ? "pagaende" : gap.utfall,
     };

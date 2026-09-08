@@ -4,7 +4,6 @@ import { api } from "../api/client";
 import { useFetch } from "../useFetch";
 import GateStatusCards from "../components/GateStatusCards";
 import GapItem from "../components/LoopGap";
-import { LoopStatBand } from "../components/LoopStats";
 import MasteryHeatmap from "../components/MasteryHeatmap";
 import { ErrorBox, Loading, Section } from "../components/Section";
 import { gradeLabel } from "../ui";
@@ -31,15 +30,9 @@ export default function ClassView() {
         </span>
       </h1>
       <p className="text-ink-soft mb-5">
-        Lärarvyn: läs av läget. Det enda som rapporteras in är tre fält per lucka – att en insats
-        påbörjats, att den följts upp, och vad ommätningen visade.
+        Lärarvyn: läs av läget. Det enda som fylls i är två saker per lucka – att en insats
+        påbörjats, och vad ommätningen visade.
       </p>
-
-      {focus.data && (
-        <div className="mb-5">
-          <LoopStatBand loop={focus.data.loop} />
-        </div>
-      )}
 
       {focus.data && (
         <Section title="Tröskelstatus i klassen" subtitle="De tre kritiska trösklarna.">
@@ -103,7 +96,7 @@ export default function ClassView() {
       {focus.data && focus.data.att_folja_upp.length > 0 && (
         <Section
           title="Att följa upp"
-          subtitle="Luckor som väntar på någon: försenad ommätning först, sedan de utan påbörjad insats."
+          subtitle="Sorterat efter vad som är mest angeläget: försenade ommätningar först." 
         >
           <ul className="space-y-3">
             {focus.data.att_folja_upp.map((g) => (

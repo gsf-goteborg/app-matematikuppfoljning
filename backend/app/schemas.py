@@ -52,9 +52,7 @@ class GapCard(BaseModel):
 
     insats_startad: date | None
     insats_ansvarig_namn: str | None
-    insatstyp: str | None
     planerad_ommatning: date | None
-    insats_frist: date
 
     ommatt_datum: date | None
     ommatt_mastery: float | None
@@ -63,6 +61,7 @@ class GapCard(BaseModel):
     stangd_datum: date | None
     status: str
     status_label: str
+    ommatning_forsenad: bool
     dagar_oppen: int | None
     stangd_inom_en_termin: bool
 
@@ -71,20 +70,21 @@ class LoopSummary(BaseModel):
     """Flow metrics. ``andel_stangda_inom_en_termin`` is never reported without
     ``upptackta_per_100_elever`` -- alone it rewards a school for looking away."""
     n_elever: int
+    n_elever_med_lucka: int
+    n_elever_bedomningsbara: int
     n_luckor: int
     n_bedomningsbara: int
     n_stangda_inom_en_termin: int
     andel_stangda_inom_en_termin: float
     n_med_insats: int
     andel_med_insats: float
-    andel_insats_i_tid: float
     n_ommatta: int
     n_stangda: int
     n_stangda_med_insats: int
     n_stangda_utan_insats: int
     n_kvarstar: int
     n_oppna: int
-    n_insats_saknas: int
+    n_utan_insats: int
     n_ommatning_forsenad: int
     median_dagar_till_stangning: int | None
     upptackta_per_100_elever: float
@@ -97,17 +97,16 @@ class LoopTerminPoint(BaseModel):
 
 
 class InsatsIn(BaseModel):
-    """The first of the three fields a teacher fills in."""
+    """Field one: an intervention was started -- by whom, and when."""
     ansvarig_namn: str
-    insatstyp: str
     datum: date | None = None
 
 
 class OmmatningIn(BaseModel):
-    """The other two: when it was re-measured, and what it showed.
+    """Field two: when it was re-measured, and what it showed.
 
-    ``mastery`` decides the outcome -- the teacher records a measurement, not a
-    verdict. A re-measurement below the threshold leaves the gap open.
+    ``mastery`` decides the outcome -- the teacher records what a check showed,
+    not a verdict. A re-measurement below the threshold leaves the gap open.
     """
     mastery: float
     datum: date | None = None
@@ -258,7 +257,7 @@ class SchoolGateSummary(BaseModel):
     andel_stangda_inom_en_termin: float = 0.0
     upptackta_per_100_elever: float = 0.0
     andel_med_insats: float = 0.0
-    n_insats_saknas: int = 0
+    n_utan_insats: int = 0
     n_luckor: int = 0
 
 
@@ -284,8 +283,8 @@ class KommunKpi(BaseModel):
     schools_with_gate_gap: int  # skolor där en tröskel systematiskt missas
     # Loop: den enda KPI:n som mäter om något faktiskt görs åt luckorna.
     andel_stangda_inom_en_termin: float = 0.0
-    n_insats_saknas: int = 0
-    n_ommatning_forsenad: int = 0
+    n_elever_bedomningsbara: int = 0
+    n_utan_insats: int = 0
 
 
 class HuvudmanOverview(BaseModel):

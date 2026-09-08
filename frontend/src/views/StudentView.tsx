@@ -96,7 +96,7 @@ export default function StudentView() {
 
       <Section
         title="Åtgärd och uppföljning"
-        subtitle="Varje lucka följs från upptäckt till ommätt utfall. Utan de stegen är en föreslagen åtgärd bara ett förslag."
+        subtitle="Varje lucka följs från upptäckt till ommätt utfall. Utan de stegen är en föreslagen åtgärd bara ett förslag." 
       >
         {s.suggested_focus.length > 0 && (
           <div className="mb-4 p-3 rounded-md bg-gbg-blue-light/10 border-l-4 border-gbg-blue">

@@ -93,7 +93,7 @@ def school_detail(school_id: int, session: Session = Depends(get_session)) -> Sc
         select(Kunskapslucka).where(Kunskapslucka.school_id == school_id)
     ).all())
     att_folja_upp = [c for c in sorted(G.cards(session, gap_rows), key=G.sort_key)
-                     if c.status in ("ommatning_forsenad", "insats_saknas")]
+                     if c.ommatning_forsenad or c.status == "vantar"]
 
     return SchoolDetail(
         school_id=school.id, namn=school.namn, intag_index=school.intag_index,

@@ -1,24 +1,27 @@
 import { useState } from "react";
-import { api, DEMO_TODAY, INSATSTYPER } from "../api/client";
+import { api, DEMO_TODAY } from "../api/client";
 import type { GapCard, GapStatus } from "../api/client";
 
 // Status colours from the official palette, same scale as risk.
 export const GAP_STATUS_COLORS: Record<GapStatus, string> = {
-  stangd: "#6a9a1f", // gbg-green
+  vantar: "#e8364a", // gbg-red
   pagaende: "#005293", // gbg-blue
-  upptackt: "#f9b000", // gbg-orange-light
   kvarstar: "#f47815", // gbg-orange
-  ommatning_forsenad: "#e8364a", // gbg-red
-  insats_saknas: "#e8364a", // gbg-red
+  stangd: "#6a9a1f", // gbg-green
 };
 
 export function StatusPill({ gap }: { gap: GapCard }) {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-2xs font-semibold text-white whitespace-nowrap"
-      style={{ background: GAP_STATUS_COLORS[gap.status] }}
-    >
-      {gap.status_label}
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span
+        className="px-2 py-0.5 rounded-full text-2xs font-semibold text-white"
+        style={{ background: GAP_STATUS_COLORS[gap.status] }}
+      >
+        {gap.status_label}
+      </span>
+      {gap.ommatning_forsenad && (
+        <span className="text-2xs font-semibold text-gbg-red-dark">· försenad</span>
+      )}
     </span>
   );
 }
@@ -45,9 +48,7 @@ function Step({
         aria-hidden
       />
       <div className="text-2xs uppercase tracking-wider text-ink-faint">{label}</div>
-      <div
-        className={`text-sm mt-0.5 tnum ${done ? "font-semibold text-ink" : "text-ink-faint"}`}
-      >
+      <div className={`text-sm mt-0.5 tnum ${done ? "font-semibold text-ink" : "text-ink-faint"}`}>
         {value}
       </div>
       {sub && <div className="text-2xs text-ink-soft mt-0.5">{sub}</div>}
@@ -58,11 +59,7 @@ function Step({
 /** The loop, made visible: detected -> intervention -> re-measured -> outcome. */
 export function GapTimeline({ gap }: { gap: GapCard }) {
   const utfallText =
-    gap.utfall === "stangd"
-      ? "Noden bemästrad"
-      : gap.utfall === "kvarstar"
-        ? "Kvarstår"
-        : "–";
+    gap.utfall === "stangd" ? "Bemästrad" : gap.utfall === "kvarstar" ? "Kvarstår" : "–";
   return (
     <ol className="flex flex-wrap gap-y-3 gap-x-2 relative">
       <span
@@ -72,43 +69,37 @@ export function GapTimeline({ gap }: { gap: GapCard }) {
       <Step
         label="Upptäckt"
         value={gap.upptackt_datum}
-        sub={`${gap.upptackt_termin} · åk ${gap.upptackt_arskurs} · ${Math.round(
-          gap.upptackt_mastery * 100
-        )}%`}
+        sub={`${gap.upptackt_termin} · åk ${gap.upptackt_arskurs}`}
         done
       />
       <Step
         label="Insats påbörjad"
         value={gap.insats_startad ?? "Ej påbörjad"}
-        sub={
-          gap.insats_startad
-            ? `${gap.insatstyp} · ${gap.insats_ansvarig_namn}`
-            : `Frist: ${gap.insats_frist}`
-        }
+        sub={gap.insats_ansvarig_namn ?? undefined}
         done={!!gap.insats_startad}
-        warn={!gap.insats_startad && gap.status === "insats_saknas"}
+        warn={!gap.insats_startad}
       />
       <Step
         label="Ommätt"
         value={gap.ommatt_datum ?? "Ej ommätt"}
         sub={
           gap.ommatt_datum
-            ? `${Math.round((gap.ommatt_mastery ?? 0) * 100)}%`
+            ? undefined
             : gap.planerad_ommatning
               ? `Planerad: ${gap.planerad_ommatning}`
               : undefined
         }
         done={!!gap.ommatt_datum}
-        warn={gap.status === "ommatning_forsenad"}
+        warn={gap.ommatning_forsenad}
       />
       <Step
         label="Utfall"
         value={utfallText}
         sub={
           gap.utfall === "stangd"
-            ? `${gap.dagar_oppen} dagar · ${
-                gap.stangd_inom_en_termin ? "inom en termin" : "längre än en termin"
-              }`
+            ? gap.stangd_inom_en_termin
+              ? "inom en termin"
+              : "längre än en termin"
             : `Öppen i ${gap.dagar_oppen} dagar`
         }
         done={gap.utfall === "stangd"}
@@ -118,21 +109,44 @@ export function GapTimeline({ gap }: { gap: GapCard }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-2xs uppercase tracking-wider text-ink-faint mb-1">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
 const inputCls =
   "w-full px-2.5 py-1.5 text-sm border border-paper-line rounded-md bg-white " +
   "focus:outline-none focus:ring-2 focus:ring-gbg-blue/40 focus:border-gbg-blue";
 
+function Buttons({
+  busy,
+  label,
+  color,
+  onCancel,
+  disabled,
+}: {
+  busy: boolean;
+  label: string;
+  color: string;
+  onCancel: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex gap-2 mt-3">
+      <button
+        type="submit"
+        disabled={busy || disabled}
+        className={`px-3 py-1.5 text-sm font-medium rounded-md text-white disabled:opacity-50 transition-colors ${color}`}
+      >
+        {busy ? "Sparar…" : label}
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-3 py-1.5 text-sm rounded-md text-ink-soft hover:bg-paper-line/40 transition-colors"
+      >
+        Avbryt
+      </button>
+    </div>
+  );
+}
+
+/** Field one: who started an intervention, and when. Two inputs, both prefilled. */
 function InsatsForm({
   gap,
   onDone,
@@ -143,7 +157,6 @@ function InsatsForm({
   onCancel: () => void;
 }) {
   const [ansvarig, setAnsvarig] = useState(gap.insats_ansvarig_namn ?? "");
-  const [typ, setTyp] = useState(gap.insatstyp ?? INSATSTYPER[0]);
   const [datum, setDatum] = useState(DEMO_TODAY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,13 +166,7 @@ function InsatsForm({
     setBusy(true);
     setError(null);
     try {
-      onDone(
-        await api.registerInsats(gap, {
-          ansvarig_namn: ansvarig,
-          insatstyp: typ,
-          datum,
-        })
-      );
+      onDone(await api.registerInsats(gap, { ansvarig_namn: ansvarig, datum }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte spara");
     } finally {
@@ -168,9 +175,15 @@ function InsatsForm({
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 p-3 rounded-md bg-gbg-blue-light/10 border border-gbg-blue/20">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Field label="Ansvarig">
+    <form
+      onSubmit={submit}
+      className="mt-3 p-3 rounded-md bg-gbg-blue-light/10 border border-gbg-blue/20"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+        <label className="block">
+          <span className="block text-2xs uppercase tracking-wider text-ink-faint mb-1">
+            Ansvarig
+          </span>
           <input
             className={inputCls}
             value={ansvarig}
@@ -178,15 +191,11 @@ function InsatsForm({
             placeholder="Namn"
             required
           />
-        </Field>
-        <Field label="Insats">
-          <select className={inputCls} value={typ} onChange={(e) => setTyp(e.target.value)}>
-            {INSATSTYPER.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Påbörjad">
+        </label>
+        <label className="block">
+          <span className="block text-2xs uppercase tracking-wider text-ink-faint mb-1">
+            Påbörjad
+          </span>
           <input
             type="date"
             className={inputCls}
@@ -194,33 +203,26 @@ function InsatsForm({
             onChange={(e) => setDatum(e.target.value)}
             required
           />
-        </Field>
+        </label>
       </div>
       <p className="text-2xs text-ink-soft mt-2">
-        Ommätning planeras automatiskt tio veckor efter startdatum. Registreringen påverkar
-        inte elevens risknivå – bara en ny mätning kan göra det.
+        Ommätning planeras tio veckor fram. Registreringen påverkar inte elevens risknivå – bara
+        en ny mätning kan göra det.
       </p>
       {error && <p className="text-2xs text-gbg-red-dark mt-1.5 font-medium">{error}</p>}
-      <div className="flex gap-2 mt-3">
-        <button
-          type="submit"
-          disabled={busy || !ansvarig.trim()}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-gbg-blue text-white hover:bg-gbg-blue-dark disabled:opacity-50 transition-colors"
-        >
-          {busy ? "Sparar…" : "Registrera insats"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3 py-1.5 text-sm rounded-md text-ink-soft hover:bg-paper-line/40 transition-colors"
-        >
-          Avbryt
-        </button>
-      </div>
+      <Buttons
+        busy={busy}
+        label="Registrera insats"
+        color="bg-gbg-blue hover:bg-gbg-blue-dark"
+        onCancel={onCancel}
+        disabled={!ansvarig.trim()}
+      />
     </form>
   );
 }
 
+/** Field two: what the follow-up check showed. Two answers, at the granularity
+ *  a teacher actually has -- a percentage would be false precision. */
 function OmmatningForm({
   gap,
   onDone,
@@ -230,18 +232,18 @@ function OmmatningForm({
   onDone: (g: GapCard) => void;
   onCancel: () => void;
 }) {
-  const [procent, setProcent] = useState(60);
+  const [klarar, setKlarar] = useState<boolean | null>(null);
   const [datum, setDatum] = useState(DEMO_TODAY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const stangs = procent >= 50;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (klarar === null) return;
     setBusy(true);
     setError(null);
     try {
-      onDone(await api.registerOmmatning(gap, { mastery: procent / 100, datum }));
+      onDone(await api.registerOmmatning(gap, { mastery: klarar ? 0.7 : 0.3, datum }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte spara");
     } finally {
@@ -249,67 +251,66 @@ function OmmatningForm({
     }
   }
 
+  const choice = (value: boolean, label: string, color: string) => (
+    <button
+      type="button"
+      onClick={() => setKlarar(value)}
+      aria-pressed={klarar === value}
+      className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+        klarar === value
+          ? `${color} text-white border-transparent font-medium`
+          : "bg-white border-paper-line text-ink-soft hover:border-gbg-blue"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <form onSubmit={submit} className="mt-3 p-3 rounded-md bg-gbg-green/10 border border-gbg-green/25">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-        <Field label="Ommätt datum">
+    <form
+      onSubmit={submit}
+      className="mt-3 p-3 rounded-md bg-gbg-green/10 border border-gbg-green/25"
+    >
+      <div className="flex flex-wrap gap-4 items-end">
+        <label className="block">
+          <span className="block text-2xs uppercase tracking-wider text-ink-faint mb-1">
+            Ommätt datum
+          </span>
           <input
             type="date"
-            className={inputCls}
+            className={`${inputCls} w-44`}
             value={datum}
             onChange={(e) => setDatum(e.target.value)}
             required
           />
-        </Field>
-        <Field label={`Resultat: ${procent}%`}>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={procent}
-            onChange={(e) => setProcent(Number(e.target.value))}
-            className="w-full accent-gbg-blue"
-            aria-label="Uppmätt bemästring i procent"
-          />
-        </Field>
-        <div className="text-sm">
-          <span className="text-2xs uppercase tracking-wider text-ink-faint block mb-1">
-            Utfall
+        </label>
+        <div>
+          <span className="block text-2xs uppercase tracking-wider text-ink-faint mb-1">
+            Vad visade ommätningen?
           </span>
-          <span
-            className="inline-block px-2 py-1 rounded text-white text-2xs font-semibold"
-            style={{ background: stangs ? "#6a9a1f" : "#f47815" }}
-          >
-            {stangs ? "Noden bemästrad – luckan stängs" : "Kvarstår – luckan förblir öppen"}
-          </span>
+          <div className="flex gap-2">
+            {choice(true, "Klarar momentet", "bg-gbg-green")}
+            {choice(false, "Inte ännu", "bg-gbg-orange")}
+          </div>
         </div>
       </div>
       <p className="text-2xs text-ink-soft mt-2">
-        Ommätningen sparas som en vanlig mätning och räknas om till risk på samma sätt som ett
-        nationellt prov. Utfallet följer av mätningen – det väljs inte.
+        Sparas som en vanlig mätning och räknas om till risk på samma sätt som ett nationellt
+        prov. Utfallet följer av mätningen – det väljs inte.
       </p>
       {error && <p className="text-2xs text-gbg-red-dark mt-1.5 font-medium">{error}</p>}
-      <div className="flex gap-2 mt-3">
-        <button
-          type="submit"
-          disabled={busy}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-gbg-green text-white hover:bg-gbg-green-dark disabled:opacity-50 transition-colors"
-        >
-          {busy ? "Sparar…" : "Registrera ommätning"}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3 py-1.5 text-sm rounded-md text-ink-soft hover:bg-paper-line/40 transition-colors"
-        >
-          Avbryt
-        </button>
-      </div>
+      <Buttons
+        busy={busy}
+        label="Registrera ommätning"
+        color="bg-gbg-green hover:bg-gbg-green-dark"
+        onCancel={onCancel}
+        disabled={klarar === null}
+      />
     </form>
   );
 }
 
-/** One gap with its lifecycle and the two registrations that close it. */
+/** One gap with its lifecycle and the registration that moves it forward. */
 export default function GapItem({
   gap,
   onUpdated,
@@ -319,11 +320,12 @@ export default function GapItem({
   onUpdated?: (g: GapCard) => void;
   showStudent?: boolean;
 }) {
-  const [open, setOpen] = useState<"insats" | "ommatning" | null>(null);
+  const [open, setOpen] = useState(false);
   const done = (g: GapCard) => {
-    setOpen(null);
+    setOpen(false);
     onUpdated?.(g);
   };
+  const nextStep = gap.insats_startad ? "ommatning" : "insats";
 
   return (
     <li className="border border-paper-line rounded-lg p-4 bg-paper-card">
@@ -347,24 +349,16 @@ export default function GapItem({
           )}
         </div>
         {gap.utfall !== "stangd" && (
-          <div className="flex gap-2">
-            {!gap.insats_startad && (
-              <button
-                onClick={() => setOpen(open === "insats" ? null : "insats")}
-                className="px-3 py-1.5 text-sm font-medium rounded-md bg-gbg-blue text-white hover:bg-gbg-blue-dark transition-colors"
-              >
-                Registrera insats
-              </button>
-            )}
-            {gap.insats_startad && (
-              <button
-                onClick={() => setOpen(open === "ommatning" ? null : "ommatning")}
-                className="px-3 py-1.5 text-sm font-medium rounded-md bg-gbg-green text-white hover:bg-gbg-green-dark transition-colors"
-              >
-                Registrera ommätning
-              </button>
-            )}
-          </div>
+          <button
+            onClick={() => setOpen(!open)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md text-white transition-colors ${
+              nextStep === "insats"
+                ? "bg-gbg-blue hover:bg-gbg-blue-dark"
+                : "bg-gbg-green hover:bg-gbg-green-dark"
+            }`}
+          >
+            {nextStep === "insats" ? "Registrera insats" : "Registrera ommätning"}
+          </button>
         )}
       </div>
 
@@ -372,11 +366,11 @@ export default function GapItem({
         <GapTimeline gap={gap} />
       </div>
 
-      {open === "insats" && (
-        <InsatsForm gap={gap} onDone={done} onCancel={() => setOpen(null)} />
+      {open && nextStep === "insats" && (
+        <InsatsForm gap={gap} onDone={done} onCancel={() => setOpen(false)} />
       )}
-      {open === "ommatning" && (
-        <OmmatningForm gap={gap} onDone={done} onCancel={() => setOpen(null)} />
+      {open && nextStep === "ommatning" && (
+        <OmmatningForm gap={gap} onDone={done} onCancel={() => setOpen(false)} />
       )}
     </li>
   );

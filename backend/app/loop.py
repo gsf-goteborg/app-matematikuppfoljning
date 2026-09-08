@@ -4,8 +4,9 @@ Detection stays machine-derived from measurements. What a human adds is the
 smallest possible report -- three fields per gap:
 
     1. insats påbörjad  (datum + ansvarig)
-    2. ommätt           (datum)
-    3. utfall           (noden bemästrad eller ej)
+    2. ommätt           (datum + vad den visade)
+
+Utfallet skrivs inte in -- det följer av ommätningen.
 
 GUARD: registering an intervention must NEVER change a pupil's risk. Only the
 re-measurement does -- it enters the system as an ordinary ``Assessment`` and
@@ -25,18 +26,10 @@ MASTERY_THRESHOLD = 0.5
 # one term after the latest ordinary measurement (15 May 2025).
 DEMO_TODAY = date(2025, 12, 15)
 
-# An intervention is expected to start within four weeks of detection ...
-INSATS_FRIST_DAGAR = 28
-# ... and to be followed by a re-measurement about ten weeks after it started.
+# An intervention is followed up about ten weeks after it started. This is the
+# only deadline in the system: one a teacher can act on, not one to report against.
 OMMATNING_VECKOR = 10
 OMMATNING_FRIST_DAGAR = OMMATNING_VECKOR * 7
-
-INSATSTYPER: list[str] = [
-    "Intensivperiod",
-    "Liten grupp",
-    "Anpassad undervisning",
-    "Specialpedagog",
-]
 
 # Gap lifecycle states as stored in ``Kunskapslucka.utfall``.
 UTFALL_OPPEN = "oppen"
@@ -44,13 +37,14 @@ UTFALL_PAGAENDE = "pagaende"
 UTFALL_STANGD = "stangd"
 UTFALL_KVARSTAR = "kvarstar"
 
+# Four states, because four is what somebody can act on: waiting for an
+# intervention, running, still open after a re-measurement, done. Whether a
+# running intervention is overdue is a flag on top, not a fifth state.
 STATUS_LABELS: dict[str, str] = {
-    "stangd": "Stängd",
-    "kvarstar": "Kvarstår efter ommätning",
+    "vantar": "Väntar på insats",
     "pagaende": "Insats pågår",
-    "ommatning_forsenad": "Ommätning försenad",
-    "insats_saknas": "Ingen insats påbörjad",
-    "upptackt": "Nyupptäckt",
+    "kvarstar": "Kvarstår efter ommätning",
+    "stangd": "Stängd",
 }
 
 
@@ -89,50 +83,30 @@ def planerad_ommatning_fran(insats_startad: date) -> date:
     return insats_startad + timedelta(days=OMMATNING_FRIST_DAGAR)
 
 
-# Roughly when Swedish terms end and the next one starts.
-_TERMINSSLUT = ((6, 10), (12, 20))   # VT, HT
-_TERMINSSTART = ((1, 10), (8, 20))   # VT, HT
-
-
-def insats_frist(upptackt: date) -> date:
-    """Deadline for starting an intervention.
-
-    Four weeks after detection -- but measured in *school* time. A gap found in
-    the last weeks of a term cannot be acted on over the summer, so the clock
-    restarts four weeks into the following term. Without this the metric would
-    just be measuring the school calendar.
-    """
-    if upptackt.month >= 8:
-        slut = date(upptackt.year, *_TERMINSSLUT[1])
-        nasta_start = date(upptackt.year + 1, *_TERMINSSTART[0])
-    else:
-        slut = date(upptackt.year, *_TERMINSSLUT[0])
-        nasta_start = date(upptackt.year, *_TERMINSSTART[1])
-    frist = upptackt + timedelta(days=INSATS_FRIST_DAGAR)
-    if frist <= slut:
-        return frist
-    return nasta_start + timedelta(days=INSATS_FRIST_DAGAR)
-
-
 # ---------------------------------------------------------------------------
 # Status
 # ---------------------------------------------------------------------------
 
 
-def status(gap: Kunskapslucka, today: date = DEMO_TODAY) -> str:
+def status(gap: Kunskapslucka) -> str:
     """Operational status -- what somebody needs to do about this gap now."""
     if gap.utfall == UTFALL_STANGD:
         return "stangd"
     if gap.utfall == UTFALL_KVARSTAR:
         return "kvarstar"
-    if gap.insats_startad is not None:
-        planerad = gap.planerad_ommatning or planerad_ommatning_fran(gap.insats_startad)
-        if planerad < today:
-            return "ommatning_forsenad"
-        return "pagaende"
-    if insats_frist(gap.upptackt_datum) < today:
-        return "insats_saknas"
-    return "upptackt"
+    return "pagaende" if gap.insats_startad is not None else "vantar"
+
+
+def ar_forsenad(gap: Kunskapslucka, today: date = DEMO_TODAY) -> bool:
+    """A running intervention whose planned follow-up has passed.
+
+    A flag rather than a state: the thing to do is still the same (re-measure),
+    it is just late.
+    """
+    if gap.insats_startad is None or gap.ommatt_datum is not None:
+        return False
+    planerad = gap.planerad_ommatning or planerad_ommatning_fran(gap.insats_startad)
+    return planerad < today
 
 
 def ar_oppen(gap: Kunskapslucka) -> bool:
@@ -220,9 +194,8 @@ def summarise(
     stangda = [g for g in gaps if g.utfall == UTFALL_STANGD]
     kvarstar = [g for g in gaps if g.utfall == UTFALL_KVARSTAR]
 
-    statuses = [status(g, today) for g in gaps]
-    n_forsenade = sum(1 for s in statuses if s == "ommatning_forsenad")
-    n_insats_saknas = sum(1 for s in statuses if s == "insats_saknas")
+    n_forsenade = sum(1 for g in gaps if ar_forsenad(g, today))
+    utan_insats = [g for g in gaps if g.insats_startad is None and ar_oppen(g)]
 
     # Cohort denominator: only gaps whose one-term window has actually closed.
     bedomningsbara = [g for g in gaps if har_fatt_sin_chans(g, today)]
@@ -232,14 +205,6 @@ def summarise(
     # only one of them is the system working.
     stangda_med_insats = sum(1 for g in stangda if g.insats_startad is not None)
 
-    # Was an intervention started within the four-week deadline?
-    hunnit_starta = [g for g in gaps if insats_frist(g.upptackt_datum) <= today]
-    startade_i_tid = sum(
-        1 for g in hunnit_starta
-        if g.insats_startad is not None
-        and g.insats_startad <= insats_frist(g.upptackt_datum)
-    )
-
     dagar = sorted(d for d in (dagar_till_stangning(g) for g in stangda) if d is not None)
     median = dagar[len(dagar) // 2] if dagar else None
 
@@ -248,20 +213,23 @@ def summarise(
 
     return {
         "n_elever": n_students,
+        # How many pupils the gaps belong to -- printed next to the gap count so
+        # nobody reads "3 687 luckor" as 3 687 pupils.
+        "n_elever_med_lucka": len({g.student_id for g in gaps}),
+        "n_elever_bedomningsbara": len({g.student_id for g in bedomningsbara}),
         "n_luckor": n,
         "n_bedomningsbara": len(bedomningsbara),
         "n_stangda_inom_en_termin": len(stangda_i_tid),
         "andel_stangda_inom_en_termin": andel(len(stangda_i_tid), len(bedomningsbara)),
         "n_med_insats": len(med_insats),
         "andel_med_insats": andel(len(med_insats), n),
-        "andel_insats_i_tid": andel(startade_i_tid, len(hunnit_starta)),
         "n_ommatta": len(ommatta),
         "n_stangda": len(stangda),
         "n_stangda_med_insats": stangda_med_insats,
         "n_stangda_utan_insats": len(stangda) - stangda_med_insats,
         "n_kvarstar": len(kvarstar),
         "n_oppna": sum(1 for g in gaps if ar_oppen(g)),
-        "n_insats_saknas": n_insats_saknas,
+        "n_utan_insats": len(utan_insats),
         "n_ommatning_forsenad": n_forsenade,
         "median_dagar_till_stangning": median,
         "upptackta_per_100_elever": round(100 * n / n_students, 1) if n_students else 0.0,

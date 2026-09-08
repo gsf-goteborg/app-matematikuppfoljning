@@ -144,9 +144,8 @@ def focus(klass_id: int, session: Session = Depends(get_session)) -> ClassFocus:
             break
 
     # Gaps waiting on somebody: overdue re-measurements first, then unstarted.
-    att_folja_upp = sorted(G.cards(session, gap_rows), key=G.sort_key)
-    att_folja_upp = [c for c in att_folja_upp
-                     if c.status in ("ommatning_forsenad", "insats_saknas", "pagaende", "kvarstar")]
+    att_folja_upp = [c for c in sorted(G.cards(session, gap_rows), key=G.sort_key)
+                     if c.status != "stangd"]
 
     return ClassFocus(
         klass_id=klass.id, beteckning=klass.beteckning, arskurs=klass.arskurs,

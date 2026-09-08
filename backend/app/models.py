@@ -120,9 +120,9 @@ class DemoMeta(SQLModel, table=True):
 class Kunskapslucka(SQLModel, table=True):
     """One gap episode for one pupil at one node -- the unit the loop closes on.
 
-    Detection is derived from measurements (never entered by hand). The three
-    fields that close the loop -- ``insats_startad`` (+ ansvarig), ``ommatt_datum``
-    and ``utfall`` -- are the only reporting the system asks a teacher for.
+    Detection is derived from measurements (never entered by hand). Two fields
+    close the loop -- ``insats_startad`` (+ ansvarig) and ``ommatt_datum`` (+ what
+    it showed). ``utfall`` follows from the measurement; nobody types it.
 
     GUARD (mirrors the SES guard in risk.py): a registered intervention must
     NEVER lower a pupil's risk. Only a re-measurement can. See loop.py.
@@ -143,13 +143,12 @@ class Kunskapslucka(SQLModel, table=True):
     insats_startad: date | None = Field(default=None)
     insats_ansvarig_id: int | None = Field(default=None, foreign_key="teacher.id")
     insats_ansvarig_namn: str | None = Field(default=None)
-    insatstyp: str | None = Field(default=None)
     planerad_ommatning: date | None = Field(default=None)
 
-    # -- ommätt (field 2: datum) --
+    # -- ommätt (field 2: datum + vad den visade) --
     ommatt_datum: date | None = Field(default=None)
     ommatt_mastery: float | None = Field(default=None)
 
-    # -- utfall (field 3: nod bemästrad eller ej) --
+    # -- utfall: derived from the re-measurement, never entered --
     utfall: str = Field(default="oppen", index=True)  # oppen|pagaende|stangd|kvarstar
     stangd_datum: date | None = Field(default=None)

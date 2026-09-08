@@ -13,7 +13,7 @@ import { api } from "../api/client";
 import type { EquityPoint, KommunKpi } from "../api/client";
 import { useFetch } from "../useFetch";
 import AlertsPanel from "../components/AlertsPanel";
-import { LoopStatBand, LoopTerminChart } from "../components/LoopStats";
+import { LoopTerminChart } from "../components/LoopStats";
 import SchoolComparison from "../components/SchoolComparison";
 import { ErrorBox, Loading, Section } from "../components/Section";
 
@@ -43,7 +43,7 @@ function KpiBand({ kpi }: { kpi: KommunKpi }) {
     {
       value: `${Math.round(kpi.andel_stangda_inom_en_termin * 100)}%`,
       label: "Luckor stängda inom en termin",
-      sub: `${kpi.n_insats_saknas.toLocaleString("sv-SE")} luckor saknar insats`,
+      sub: `${kpi.n_utan_insats.toLocaleString("sv-SE")} väntar på en insats`,
       accent:
         kpi.andel_stangda_inom_en_termin >= 0.4
           ? "text-gbg-green-dark"
@@ -167,31 +167,29 @@ export default function HuvudmanView() {
 
       <Section
         title="Sluts loopen?"
-        subtitle="Det som skiljer uppföljning från visualisering: att upptäckta luckor faktiskt stängs, och hur snabbt."
+        subtitle="Andel upptäckta luckor som stängs inom en termin, per den termin de upptäcktes."
       >
-        <LoopStatBand loop={data.loop} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
-          <div>
-            <h3 className="text-2xs uppercase tracking-wider font-semibold text-ink-soft mb-2">
-              Stängda inom en termin, per upptäcktstermin
-            </h3>
-            <LoopTerminChart points={data.loop_by_termin} />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LoopTerminChart points={data.loop_by_termin} />
           <div className="text-sm text-ink-soft space-y-2">
             <p>
-              <strong className="text-ink">Så läser du talen.</strong> En hög stängningsgrad är
-              trovärdig bara tillsammans med en rimlig upptäcktsgrad. En skola som hittar få luckor
-              kan se ut att stänga nästan alla – därför står de två talen alltid bredvid varandra.
+              <strong className="text-ink">Så läser du talet.</strong> En hög stängningsgrad är
+              trovärdig bara tillsammans med en rimlig upptäcktsgrad – en skola som hittar få
+              luckor kan se ut att stänga nästan alla. Båda talen står bredvid varandra i
+              skoljämförelsen nedan.
             </p>
             <p>
-              Luckor som upptäckts den här terminen räknas inte in ännu; de har inte haft en hel
-              termin på sig. Nämnaren är{" "}
-              <span className="tnum">{data.loop.n_bedomningsbara.toLocaleString("sv-SE")}</span> av{" "}
-              <span className="tnum">{data.loop.n_luckor.toLocaleString("sv-SE")}</span> luckor.
+              Nämnaren är{" "}
+              <span className="tnum">{data.loop.n_bedomningsbara.toLocaleString("sv-SE")}</span>{" "}
+              luckor hos{" "}
+              <span className="tnum">
+                {data.loop.n_elever_bedomningsbara.toLocaleString("sv-SE")}
+              </span>{" "}
+              elever. Luckor som upptäckts den här terminen räknas inte in ännu – de har inte haft
+              en hel termin på sig.
             </p>
             <p>
-              En registrerad insats sänker aldrig en elevs risk – bara en ommätning gör det. Annars
-              hade andelen stängda luckor gått att stänga med papper.
+              En registrerad insats sänker aldrig en elevs risk. Bara en ommätning gör det.
             </p>
           </div>
         </div>

@@ -267,7 +267,6 @@ class Simulator:
             "det_grade": ep["upptackt_arskurs"],
             "upptackt_datum": upptackt,
             "insats_startad": insats_startad,
-            "insatstyp": loop.INSATSTYPER[int(rng.integers(0, len(loop.INSATSTYPER)))],
             "planerad_ommatning": loop.planerad_ommatning_fran(insats_startad),
             "ommatt_datum": None,
             "ommatt_mastery": None,
@@ -388,7 +387,6 @@ class Simulator:
                 gap.insats_startad = iv["insats_startad"]
                 gap.insats_ansvarig_id = teacher.id if teacher else None
                 gap.insats_ansvarig_namn = teacher.namn if teacher else None
-                gap.insatstyp = iv["insatstyp"]
                 gap.planerad_ommatning = iv["planerad_ommatning"]
                 gap.ommatt_datum = iv["ommatt_datum"]
                 gap.ommatt_mastery = iv["ommatt_mastery"]
@@ -570,7 +568,6 @@ class Simulator:
             "det_grade": 6,
             "upptackt_datum": date(base_year + 6, 5, 15),
             "insats_startad": insats_startad,
-            "insatstyp": "Intensivperiod",
             "planerad_ommatning": loop.planerad_ommatning_fran(insats_startad),
             "ommatt_datum": date(base_year + 6, 11, 24),
             "ommatt_mastery": 0.71,

@@ -1,10 +1,10 @@
 """Gap endpoints -- the closed loop.
 
-Reading is free. Writing is deliberately limited to the three fields that turn
-a suggestion into a follow-up:
+Reading is free. Writing is deliberately limited to the two fields that turn a
+suggestion into a follow-up -- the outcome is derived, never typed:
 
-    POST /api/gaps/{id}/insats      -- påbörjad (datum + ansvarig + typ)
-    POST /api/gaps/{id}/ommatning   -- ommätt (datum) -> utfall
+    POST /api/gaps/{id}/insats      -- påbörjad (datum + ansvarig)
+    POST /api/gaps/{id}/ommatning   -- ommätt (datum + vad den visade)
 
 The second one writes an ordinary ``Assessment`` and recomputes the pupil's
 risk from it. The first one writes no measurement and therefore cannot move
@@ -57,15 +57,14 @@ def to_card(
         upptackt_mastery=gap.upptackt_mastery,
         insats_startad=gap.insats_startad,
         insats_ansvarig_namn=gap.insats_ansvarig_namn,
-        insatstyp=gap.insatstyp,
         planerad_ommatning=gap.planerad_ommatning,
-        insats_frist=loop.insats_frist(gap.upptackt_datum),
         ommatt_datum=gap.ommatt_datum,
         ommatt_mastery=gap.ommatt_mastery,
         utfall=gap.utfall,
         stangd_datum=gap.stangd_datum,
         status=st,
         status_label=loop.STATUS_LABELS[st],
+        ommatning_forsenad=loop.ar_forsenad(gap),
         dagar_oppen=(slut - gap.upptackt_datum).days,
         stangd_inom_en_termin=loop.stangd_inom_en_termin(gap),
     )
@@ -79,12 +78,13 @@ def cards(session: Session, gaps: list[Kunskapslucka]) -> list[GapCard]:
 
 
 def sort_key(card: GapCard) -> tuple:
-    """Most actionable first: overdue and unstarted gaps before closed ones."""
-    order = {
-        "ommatning_forsenad": 0, "insats_saknas": 1, "kvarstar": 2,
-        "pagaende": 3, "upptackt": 4, "stangd": 5,
-    }
-    return (order.get(card.status, 9), not card.is_gate, card.upptackt_datum)
+    """Most actionable first: overdue follow-ups, then gaps nobody has started on."""
+    order = {"vantar": 1, "kvarstar": 2, "pagaende": 3, "stangd": 4}
+    return (
+        0 if card.ommatning_forsenad else order.get(card.status, 9),
+        not card.is_gate,
+        card.upptackt_datum,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ def list_gaps(
     student_id: str | None = None,
     klass_id: int | None = None,
     school_id: int | None = None,
-    status: str | None = Query(default=None, description="stangd|kvarstar|pagaende|ommatning_forsenad|insats_saknas|upptackt"),
+    status: str | None = Query(default=None, description="vantar|pagaende|kvarstar|stangd"),
     oppna: bool = Query(default=False, description="Bara luckor som ännu inte är stängda."),
     limit: int = Query(default=200, le=5000),
     session: Session = Depends(get_session),
@@ -168,7 +168,7 @@ def _get_gap(session: Session, gap_id: int) -> Kunskapslucka:
 def registrera_insats(
     gap_id: int, body: InsatsIn, session: Session = Depends(get_session),
 ) -> GapCard:
-    """Field 1: an intervention was started -- by whom, and when.
+    """Field one: an intervention was started -- by whom, and when.
 
     Writes no measurement, so the pupil's risk is untouched. Only the follow-up
     measurement can move it.
@@ -185,7 +185,6 @@ def registrera_insats(
 
     gap.insats_startad = startad
     gap.insats_ansvarig_namn = body.ansvarig_namn.strip()
-    gap.insatstyp = body.insatstyp.strip()
     gap.planerad_ommatning = loop.planerad_ommatning_fran(startad)
     if gap.utfall == loop.UTFALL_OPPEN:
         gap.utfall = loop.UTFALL_PAGAENDE
@@ -199,7 +198,7 @@ def registrera_insats(
 def registrera_ommatning(
     gap_id: int, body: OmmatningIn, session: Session = Depends(get_session),
 ) -> GapCard:
-    """Fields 2 and 3: re-measured on this date, and what it showed.
+    """Field two: re-measured on this date, showing this. The outcome follows.
 
     The re-measurement is stored as an ordinary ``Assessment`` and the pupil's
     risk trajectory is recomputed from it -- the same path any national test

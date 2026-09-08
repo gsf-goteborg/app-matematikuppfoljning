@@ -14,7 +14,7 @@ import {
 import { api } from "../api/client";
 import { useFetch } from "../useFetch";
 import GapItem from "../components/LoopGap";
-import { LoopFunnel, LoopStatBand, LoopTerminChart } from "../components/LoopStats";
+import { LoopFunnel, LoopHeadline } from "../components/LoopStats";
 import { ErrorBox, Loading, Section } from "../components/Section";
 import { gradeLabel } from "../ui";
 
@@ -53,25 +53,12 @@ export default function SchoolView() {
         <span className="font-semibold text-ink">{Math.round(data.f_rate_ak9 * 100)}%</span>
       </p>
 
-      <div className="mb-5">
-        <LoopStatBand loop={data.loop} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Section
-          title="Luckflöde"
-          subtitle="Från upptäckt till stängd. Tappet mellan stegen är där loopen brister."
-        >
+      <Section title="Sluts loopen?" subtitle="Kommer eleverna ikapp, och vad står still?">
+        <LoopHeadline loop={data.loop} />
+        <div className="mt-5 pt-5 border-t border-paper-line">
           <LoopFunnel loop={data.loop} />
-        </Section>
-
-        <Section
-          title="Stängda inom en termin"
-          subtitle="Per upptäcktstermin – sluts loopen tätare över tid, eller glider den?"
-        >
-          <LoopTerminChart points={data.loop_by_termin} />
-        </Section>
-      </div>
+        </div>
+      </Section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Section
@@ -122,7 +109,7 @@ export default function SchoolView() {
       {data.att_folja_upp.length > 0 && (
         <Section
           title="Luckor som står still"
-          subtitle="Försenade ommätningar och luckor utan påbörjad insats – det rektor kan göra något åt idag."
+          subtitle="Försenade ommätningar och luckor utan påbörjad insats – det som går att göra något åt idag." 
         >
           <ul className="space-y-3">
             {data.att_folja_upp.map((g) => (

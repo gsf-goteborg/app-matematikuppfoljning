@@ -86,7 +86,7 @@ export default function SchoolComparison({ schools }: { schools: SchoolGateSumma
                   className={`inline-block w-full rounded px-2 py-1 tnum ${loopCell(
                     s.andel_stangda_inom_en_termin
                   )}`}
-                  title={`${s.n_insats_saknas} luckor utan påbörjad insats`}
+                  title={`${s.n_utan_insats} luckor väntar på en insats`}
                 >
                   {Math.round(s.andel_stangda_inom_en_termin * 100)}%
                 </span>

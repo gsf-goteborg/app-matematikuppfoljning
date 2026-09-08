@@ -17,6 +17,10 @@ insats påbörjad (datum, ansvarig) → ommätt (datum) → utfall (bemästrad e
 Först då kan huvudmannen se det som faktiskt betyder något: **hur stor andel av
 upptäckta luckor som stängs inom en termin, per skola**.
 
+Komplexiteten ligger i motorn, inte i gränssnittet. Kunskapsgrafen, kaskaden och
+riskmodellen är avancerade – men ingen användare rör dem. Det som faktiskt begärs
+av en lärare är **två fält per lucka**, cirka femton sekunder.
+
 ## Kom igång
 
 Krav: Python 3.11+, Node 18+.
@@ -94,39 +98,48 @@ aldrig in för hand. En episod öppnas vid första mätningen under tröskeln (0
 och stängs vid första senare mätningen över den. Faller noden igen öppnas en ny
 episod: ett återfall är en ny lucka, inte den gamla.
 
-Det enda som rapporteras in är tre fält:
+Det enda som fylls i är två fält. Utfallet skrivs aldrig in – det följer av
+ommätningen:
 
 | Fält | Vad | Var |
 |---|---|---|
-| **Insats påbörjad** | datum + ansvarig + insatstyp | `POST /api/gaps/{id}/insats` |
-| **Ommätt** | datum | `POST /api/gaps/{id}/ommatning` |
-| **Utfall** | följer av ommätningen (≥ 0,5 → stängd) | – |
+| **Insats påbörjad** | datum + ansvarig | `POST /api/gaps/{id}/insats` |
+| **Ommätt** | datum + vad ommätningen visade | `POST /api/gaps/{id}/ommatning` |
+| *Utfall* | *härleds (≥ 0,5 → stängd)* | – |
 
-Status räknas fram mot demons "idag" (`loop.DEMO_TODAY`, 2025-12-15):
-`nyupptäckt` · `ingen insats påbörjad` · `insats pågår` · `ommätning försenad` ·
-`kvarstår efter ommätning` · `stängd`.
+Fyra statusar, för att fyra är vad någon kan agera på: `väntar på insats` ·
+`insats pågår` · `kvarstår efter ommätning` · `stängd`. Om en pågående insats
+passerat sin planerade ommätning är det en *flagga* ovanpå statusen, inte ett
+femte läge.
 
-Två fristerna som gör KPI:erna ärliga:
+En enda frist finns i systemet: **ommätning tio veckor efter insats**. Den går
+att agera på. Någon frist för när insatsen ska ha startat finns medvetet inte –
+det hade blivit ett efterlevnadsmått som inbjuder till bockande. Att en lucka
+*saknar* insats är signalen som betyder något.
 
-- **Insats inom fyra veckor** – men mätt i *skoltid*. En lucka som hittas sista
-  veckan på terminen kan inte åtgärdas över sommaren, så klockan startar om fyra
-  veckor in på nästa termin. Annars mäter måttet bara skolkalendern.
-- **Stängd inom en termin** – nämnaren är luckor vars terminsfönster faktiskt
-  hunnit löpa ut. En lucka som hittades i veckan hålls inte till en stängning den
-  aldrig haft tid för.
+**Stängd inom en termin** har en ärlig nämnare: bara luckor vars terminsfönster
+hunnit löpa ut räknas. En lucka som hittades i veckan hålls inte till en
+stängning den aldrig haft tid för.
+
+Enheten är luckan, inte eleven – men antalet elever skrivs alltid ut bredvid, så
+att "3 560 luckor" inte läses som 3 560 elever. (Ett elevbaserat mått testades
+och förkastades: "alla luckor stängda" domineras av hur *många* luckor en elev
+har, vilket vänder på jämförelsen mellan skolor.)
 
 ## Vyer (drill-down Huvudman ▸ Skola ▸ Klass ▸ Elev)
 
-- **Huvudman** (`/`): "Sluts loopen?" – andel stängda inom en termin, upptäckta
-  per 100 elever, luckor utan insats, försenade ommätningar, trend per
-  upptäcktstermin. Plus skoljämförelse på trösklar (N6/N12/N17),
-  systemvarningar och likvärdighetspanel.
-- **Skola** (`/skola/:id`): luckflöde (upptäckta → insats → ommätta → stängda),
-  stängningsgrad per termin, "luckor som står still", kohorttrend,
-  tröskelstatus per årskurs, klasser som driver risk.
-- **Klass** (`/klass/:id`): mastery-heatmap, tröskelstatus, "fokus denna vecka"
-  (nu med hur många i varje grupp som har påbörjad insats) och "att följa upp".
-  Läraren läser – det enda som fylls i är de tre fälten.
+Varje nivå har **ett** loop-mått och en bild – inte ett instrumentbräde.
+
+- **Huvudman** (`/`): andel stängda inom en termin i KPI-bandet, och en trend
+  per upptäcktstermin. Skoljämförelsen visar stängningsgrad och upptäcktsgrad
+  bredvid varandra. Plus trösklar (N6/N12/N17), systemvarningar och
+  likvärdighetspanel.
+- **Skola** (`/skola/:id`): tre tal (stängningsgrad, upptäcktsgrad, luckor som
+  väntar) och luckflödet upptäckta → insats → ommätta → stängda. Sedan "luckor
+  som står still", kohorttrend, tröskelstatus, klasser som driver risk.
+- **Klass** (`/klass/:id`): ingen styrpanel alls. Tröskelstatus, "fokus denna
+  vecka" (med hur många i varje grupp som har påbörjad insats) och "att följa
+  upp" – en lista med en knapp per rad.
 - **Elev** (`/elev/:id`): progressionsgraf (DAG), risktrajektoria och
   **"Åtgärd och uppföljning"**: varje lucka med sin tidslinje och de två
   registreringarna som stänger den.
@@ -160,7 +173,7 @@ direkt till dem; id:na hämtas också från `GET /api/demo/scenarios`.
 | GET | `/api/students/{id}`, `/api/students/{id}/comparison` |
 | GET | `/api/students?risk_level=3` |
 | GET | `/api/gaps?student_id=&klass_id=&school_id=&status=&oppna=` |
-| POST | `/api/gaps/{id}/insats` – `{ansvarig_namn, insatstyp, datum?}` |
+| POST | `/api/gaps/{id}/insats` – `{ansvarig_namn, datum?}` |
 | POST | `/api/gaps/{id}/ommatning` – `{mastery, datum?}` |
 | POST | `/api/seed?students=2000&seed=42` |
 

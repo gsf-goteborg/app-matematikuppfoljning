@@ -10,8 +10,6 @@ import {
 } from "recharts";
 import type { LoopSummary, LoopTerminPoint } from "../api/client";
 
-const pct = (v: number) => `${Math.round(v * 100)}%`;
-
 function closureColor(share: number): string {
   if (share >= 0.5) return "#6a9a1f"; // gbg-green
   if (share >= 0.3) return "#9ec038";
@@ -20,67 +18,56 @@ function closureColor(share: number): string {
 }
 
 /**
- * The loop KPIs. Closure rate is deliberately printed next to the detection
- * rate: on its own it rewards a school for finding fewer gaps.
+ * The headline and its companion, and nothing else. Closure rate on its own
+ * rewards a school for finding fewer gaps, so the detection rate is never more
+ * than a line away from it.
  */
-export function LoopStatBand({ loop }: { loop: LoopSummary }) {
-  const stats = [
-    {
-      value: pct(loop.andel_stangda_inom_en_termin),
-      label: "Luckor stängda inom en termin",
-      sub: `${loop.n_stangda_inom_en_termin} av ${loop.n_bedomningsbara} bedömningsbara`,
-      color: closureColor(loop.andel_stangda_inom_en_termin),
-    },
-    {
-      value: `${loop.upptackta_per_100_elever}`,
-      label: "Upptäckta luckor per 100 elever",
-      sub: "Läses tillsammans med stängningsgraden",
-      color: "#005293",
-    },
-    {
-      value: pct(loop.andel_med_insats),
-      label: "Har påbörjad insats",
-      sub: `${pct(loop.andel_insats_i_tid)} inom fyra veckor`,
-      color: loop.andel_med_insats < 0.35 ? "#f47815" : "#005293",
-    },
-    {
-      value: `${loop.n_insats_saknas}`,
-      label: "Saknar insats",
-      sub: `${loop.n_ommatning_forsenad} väntar på försenad ommätning`,
-      color: loop.n_insats_saknas > 0 ? "#e8364a" : "#6a9a1f",
-    },
-    {
-      value:
-        loop.median_dagar_till_stangning === null
-          ? "–"
-          : `${loop.median_dagar_till_stangning}`,
-      label: "Dagar till stängning",
-      sub: "Median, från upptäckt till bemästrad",
-      color: "#5a6573",
-    },
-  ];
-
+export function LoopHeadline({ loop }: { loop: LoopSummary }) {
   return (
-    <div className="bg-paper-card rounded-lg border border-paper-line shadow-card overflow-hidden">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 divide-y divide-paper-line lg:divide-y-0 lg:divide-x">
-        {stats.map((s, i) => (
-          <div key={s.label} className="p-4 sm:p-5 animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
-            <div
-              className="font-display text-4xl font-semibold tnum leading-none"
-              style={{ color: s.color }}
-            >
-              {s.value}
-            </div>
-            <div className="text-sm font-semibold text-ink mt-2">{s.label}</div>
-            <div className="text-2xs text-ink-faint mt-0.5">{s.sub}</div>
-          </div>
-        ))}
+    <div className="flex flex-wrap gap-x-10 gap-y-4">
+      <div>
+        <div
+          className="font-display text-5xl font-semibold tnum leading-none"
+          style={{ color: closureColor(loop.andel_stangda_inom_en_termin) }}
+        >
+          {Math.round(loop.andel_stangda_inom_en_termin * 100)}%
+        </div>
+        <div className="text-sm font-semibold text-ink mt-2">
+          av upptäckta luckor stängs inom en termin
+        </div>
+        <div className="text-2xs text-ink-faint mt-0.5 tnum">
+          {loop.n_stangda_inom_en_termin.toLocaleString("sv-SE")} av{" "}
+          {loop.n_bedomningsbara.toLocaleString("sv-SE")} luckor, hos{" "}
+          {loop.n_elever_bedomningsbara.toLocaleString("sv-SE")} elever
+        </div>
       </div>
+      <div>
+        <div className="font-display text-5xl font-semibold tnum leading-none text-gbg-blue">
+          {loop.upptackta_per_100_elever.toLocaleString("sv-SE")}
+        </div>
+        <div className="text-sm font-semibold text-ink mt-2">
+          upptäckta luckor per 100 elever
+        </div>
+        <div className="text-2xs text-ink-faint mt-0.5">
+          Läses tillsammans med talet till vänster
+        </div>
+      </div>
+      {loop.n_utan_insats > 0 && (
+        <div>
+          <div className="font-display text-5xl font-semibold tnum leading-none text-gbg-red">
+            {loop.n_utan_insats.toLocaleString("sv-SE")}
+          </div>
+          <div className="text-sm font-semibold text-ink mt-2">luckor väntar på en insats</div>
+          <div className="text-2xs text-ink-faint mt-0.5 tnum">
+            {loop.n_ommatning_forsenad.toLocaleString("sv-SE")} väntar på en försenad ommätning
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/** Where the gaps stand right now: found -> acted on -> re-measured -> closed. */
+/** Where the gaps stand: found -> acted on -> re-measured -> closed. */
 export function LoopFunnel({ loop }: { loop: LoopSummary }) {
   const steps = [
     { label: "Upptäckta", n: loop.n_luckor, color: "#005293" },
@@ -110,10 +97,8 @@ export function LoopFunnel({ loop }: { loop: LoopSummary }) {
         ))}
       </div>
       <p className="text-2xs text-ink-soft mt-3">
-        Av {loop.n_stangda.toLocaleString("sv-SE")} stängda luckor stängdes{" "}
-        <strong>{loop.n_stangda_med_insats.toLocaleString("sv-SE")}</strong> efter en registrerad
-        insats och {loop.n_stangda_utan_insats.toLocaleString("sv-SE")} utan – och{" "}
-        {loop.n_kvarstar.toLocaleString("sv-SE")} kvarstod efter ommätning.
+        Tappet mellan stegen är där loopen brister. {loop.n_kvarstar.toLocaleString("sv-SE")}{" "}
+        luckor kvarstod efter ommätning.
       </p>
     </div>
   );

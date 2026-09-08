@@ -64,7 +64,7 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
             andel_stangda_inom_en_termin=sl.andel_stangda_inom_en_termin,
             upptackta_per_100_elever=sl.upptackta_per_100_elever,
             andel_med_insats=sl.andel_med_insats,
-            n_insats_saknas=sl.n_insats_saknas,
+            n_utan_insats=sl.n_utan_insats,
             n_luckor=sl.n_luckor,
         ))
 
@@ -97,14 +97,8 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
                 severity="critical", school_id=summ.school_id,
                 text=(f"{summ.namn}: bara "
                       f"{round(summ.andel_stangda_inom_en_termin * 100)}% av upptäckta luckor "
-                      f"stängs inom en termin – {summ.n_insats_saknas} luckor saknar påbörjad insats. "
-                      f"Skolan ser luckorna men loopen sluts inte."),
-            ))
-        elif summ.n_luckor >= 30 and summ.andel_med_insats < 0.35:
-            alerts.append(Alert(
-                severity="warning", school_id=summ.school_id,
-                text=(f"{summ.namn}: insats har påbörjats för bara "
-                      f"{round(summ.andel_med_insats * 100)}% av luckorna."),
+                      f"stängs inom en termin. {summ.n_utan_insats} luckor väntar på en "
+                      f"insats – skolan ser dem, men loopen sluts inte."),
             ))
         if summ.f_rate_ak9 >= 0.18:
             alerts.append(Alert(
@@ -175,8 +169,8 @@ def overview(session: Session = Depends(get_session)) -> HuvudmanOverview:
             1 for s in school_summaries if s.gate_shares.get("N12", 1.0) < 0.65
         ),
         andel_stangda_inom_en_termin=kommun_loop.andel_stangda_inom_en_termin,
-        n_insats_saknas=kommun_loop.n_insats_saknas,
-        n_ommatning_forsenad=kommun_loop.n_ommatning_forsenad,
+        n_elever_bedomningsbara=kommun_loop.n_elever_bedomningsbara,
+        n_utan_insats=kommun_loop.n_utan_insats,
     )
 
     return HuvudmanOverview(
